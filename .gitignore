@@ -44,6 +44,11 @@ Thumbs.db
 Desktop.ini
 *.lnk
 
+# ---------- MS Office / iWork temp files ----------
+~$*
+*.tmp
+.~lock.*
+
 # ---------- Env / Secrets ----------
 .env
 .env.*
