@@ -1,0 +1,28 @@
+# FastAPI and server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+websockets>=13.0
+python-multipart>=0.0.9
+
+# Google ADK (optional - for future use)
+# google-genai>=1.0.0
+# google-adk>=0.3.0
+
+# Ollama integration
+ollama>=0.4.0
+
+# Data models
+pydantic>=2.6.0
+pydantic-settings>=2.1.0
+
+# Async support
+aiohttp>=3.9.0
+aiofiles>=23.2.0
+
+# Utilities
+python-dotenv>=1.0.0
+httpx>=0.27.0
+loguru>=0.7.0
+
+# YAML support
+pyyaml>=6.0.0

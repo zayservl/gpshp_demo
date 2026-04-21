@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Бэклог ИИ-инициатив ГШП — Презентация для инвесторов</title>
+<style>
+* { margin: 0px; padding: 0px; box-sizing: border-box; }
+
+body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; background: rgb(10, 10, 26); color: rgb(255, 255, 255); overflow-x: hidden; }
+
+.slide { min-height: 100vh; padding: 60px 80px; display: flex; flex-direction: column; justify-content: center; position: relative; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+.slide-number { position: absolute; bottom: 30px; right: 60px; font-size: 14px; color: rgba(255, 255, 255, 0.3); letter-spacing: 2px; }
+
+.slide-title { font-size: 52px; font-weight: 700; margin-bottom: 20px; line-height: 1.1; }
+
+.slide-subtitle { font-size: 22px; color: rgba(255, 255, 255, 0.6); margin-bottom: 50px; max-width: 800px; line-height: 1.5; }
+
+.gradient-text { background: linear-gradient(135deg, rgb(79, 172, 254) 0%, rgb(0, 242, 254) 50%, rgb(102, 126, 234) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-top: 30px; }
+
+.kpi-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 28px; text-align: center; transition: transform 0.3s, box-shadow 0.3s; }
+
+.kpi-card:hover { transform: translateY(-4px); box-shadow: rgba(79, 172, 254, 0.15) 0px 20px 60px; border-color: rgba(79, 172, 254, 0.4); }
+
+.kpi-number { font-size: 48px; font-weight: 800; background: linear-gradient(135deg, rgb(79, 172, 254), rgb(0, 242, 254)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+
+.kpi-label { font-size: 14px; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 1.5px; }
+
+.big-number { font-size: 120px; font-weight: 900; background: linear-gradient(135deg, rgb(79, 172, 254) 0%, rgb(102, 126, 234) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; margin-bottom: 10px; }
+
+.section-badge { display: inline-block; padding: 6px 16px; border-radius: 30px; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; font-weight: 600; }
+
+.badge-blue { background: rgba(79, 172, 254, 0.2); color: rgb(79, 172, 254); border: 1px solid rgba(79, 172, 254, 0.3); }
+
+.badge-green { background: rgba(0, 242, 254, 0.2); color: rgb(0, 242, 254); border: 1px solid rgba(0, 242, 254, 0.3); }
+
+.badge-purple { background: rgba(102, 126, 234, 0.2); color: rgb(167, 139, 250); border: 1px solid rgba(102, 126, 234, 0.3); }
+
+.role-card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 36px; margin-bottom: 20px; transition: border-color 0.3s; }
+
+.role-card:hover { border-color: rgba(79, 172, 254, 0.3); }
+
+.role-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+.role-name { font-size: 28px; font-weight: 700; }
+
+.role-stats { display: flex; gap: 30px; }
+
+.role-stat { text-align: center; }
+
+.role-stat-value { font-size: 28px; font-weight: 800; color: rgb(79, 172, 254); }
+
+.role-stat-label { font-size: 12px; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1px; }
+
+.role-kpi { font-size: 16px; color: rgba(255, 255, 255, 0.7); line-height: 1.6; margin-bottom: 20px; padding: 16px 20px; background: rgba(79, 172, 254, 0.08); border-left: 3px solid rgb(79, 172, 254); border-radius: 0px 12px 12px 0px; }
+
+.mvp-list { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.mvp-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.06); }
+
+.mvp-dot { width: 10px; height: 10px; border-radius: 50%; background: rgb(79, 172, 254); flex-shrink: 0; margin-top: 5px; }
+
+.mvp-score { font-size: 12px; color: rgb(0, 242, 254); font-weight: 700; margin-left: auto; flex-shrink: 0; }
+
+.mvp-name { font-size: 14px; color: rgba(255, 255, 255, 0.85); line-height: 1.4; flex: 1 1 0%; }
+
+.wave-card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 30px 36px; margin-bottom: 24px; }
+
+.wave-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+
+.wave-number { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; flex-shrink: 0; }
+
+.wave-1 .wave-number { background: linear-gradient(135deg, rgb(79, 172, 254), rgb(0, 242, 254)); color: rgb(10, 10, 26); }
+
+.wave-2 .wave-number { background: linear-gradient(135deg, rgb(102, 126, 234), rgb(167, 139, 250)); color: rgb(255, 255, 255); }
+
+.wave-3 .wave-number { background: linear-gradient(135deg, rgb(240, 147, 251), rgb(245, 87, 108)); color: rgb(255, 255, 255); }
+
+.wave-title { font-size: 22px; font-weight: 700; }
+
+.wave-time { font-size: 14px; color: rgba(255, 255, 255, 0.4); margin-left: auto; }
+
+.wave-items { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.wave-item { padding: 8px 18px; border-radius: 30px; font-size: 13px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.8); }
+
+.synergy-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+
+.synergy-card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 24px 30px; display: flex; align-items: center; gap: 24px; }
+
+.synergy-icon { width: 50px; height: 50px; border-radius: 14px; background: linear-gradient(135deg, rgba(79, 172, 254, 0.2), rgba(102, 126, 234, 0.2)); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+
+.synergy-text { font-size: 16px; color: rgba(255, 255, 255, 0.8); line-height: 1.5; }
+
+.synergy-title { font-size: 18px; font-weight: 700; color: rgb(255, 255, 255); margin-bottom: 6px; }
+
+.maturity-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+
+.maturity-card { border-radius: 20px; padding: 30px; border: 1px solid; }
+
+.maturity-high { background: rgba(0, 242, 254, 0.05); border-color: rgba(0, 242, 254, 0.2); }
+
+.maturity-mid { background: rgba(79, 172, 254, 0.05); border-color: rgba(79, 172, 254, 0.2); }
+
+.maturity-low { background: rgba(167, 139, 250, 0.05); border-color: rgba(167, 139, 250, 0.2); }
+
+.maturity-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+
+.maturity-high .maturity-title { color: rgb(0, 242, 254); }
+
+.maturity-mid .maturity-title { color: rgb(79, 172, 254); }
+
+.maturity-low .maturity-title { color: rgb(167, 139, 250); }
+
+.maturity-desc { font-size: 13px; color: rgba(255, 255, 255, 0.4); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+
+.maturity-list { list-style: none; }
+
+.maturity-list li { font-size: 14px; color: rgba(255, 255, 255, 0.7); padding: 6px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+.maturity-list li:last-child { border-bottom: none; }
+
+.summary-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+
+.summary-table th { text-align: left; padding: 14px 20px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255, 255, 255, 0.4); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+
+.summary-table td { padding: 16px 20px; font-size: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+.summary-table tr:hover td { background: rgba(255, 255, 255, 0.03); }
+
+.score-bar { display: inline-flex; align-items: center; gap: 8px; }
+
+.score-pip { width: 8px; height: 8px; border-radius: 2px; background: rgba(255, 255, 255, 0.15); }
+
+.score-pip.filled { background: rgb(79, 172, 254); }
+
+.nav-dots { position: fixed; right: 30px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; z-index: 100; }
+
+.nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); cursor: pointer; transition: 0.3s; }
+
+.nav-dot.active { background: rgb(79, 172, 254); box-shadow: rgba(79, 172, 254, 0.5) 0px 0px 10px; }
+
+.cover-line { font-size: 16px; color: rgba(255, 255, 255, 0.5); margin-bottom: 8px; letter-spacing: 1px; }
+
+.cover-line span { color: rgb(79, 172, 254); }
+
+.divider { width: 80px; height: 4px; background: linear-gradient(90deg, rgb(79, 172, 254), rgb(102, 126, 234)); border-radius: 2px; margin: 30px 0px; }
+
+.tag-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+.tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.6); }
+
+.contact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+
+.contact-item { padding: 14px 18px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; font-size: 14px; color: rgba(255, 255, 255, 0.6); }
+
+.contact-item strong { color: rgb(255, 255, 255); }
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+
+.slide { animation: 0.6s ease-out 0s 1 normal none running fadeInUp; }
+
+@media print {
+  .slide { page-break-after: always; min-height: 100vh; }
+  .nav-dots { display: none; }
+}
+</style>
+</head>
+<body>
+
+
+
+<!-- SLIDE 1: Cover -->
+<div class="slide" id="s0">
+  <div class="cover-line">ГШП <span>•</span> Стратегия внедрения ИИ</div>
+  <div class="slide-title" style="font-size: 68px; margin-top: 10px;">
+    <span class="gradient-text">Бэклог инициатив</span><br>по внедрению ИИ
+  </div>
+  <div class="slide-subtitle">Первичная декомпозиция по направлениям «AI-сотрудников». Формирование портфеля MVP для запуска пилотирования.</div>
+  <div class="divider"></div>
+  <div style="display: flex; gap: 40px; margin-top: 20px;">
+    <div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Источник</div>
+      <div style="font-size: 16px; color: rgba(255,255,255,0.7);">Список_проектов_для_оценки_ГШП_ФИНАЛ.xlsx</div>
+    </div>
+    <div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Дата</div>
+      <div style="font-size: 16px; color: rgba(255,255,255,0.7);">2026</div>
+    </div>
+  </div>
+  <div class="slide-number">01</div>
+</div>
+
+<!-- SLIDE 2: Overview KPIs -->
+<div class="slide" id="s1">
+  <span class="section-badge badge-blue">Обзор</span>
+  <div class="slide-title">108 инициатив — <span class="gradient-text">39 AI-MVP</span></div>
+  <div class="slide-subtitle">Из 108 собранных инициатив выделены 39 AI-проектов с низким уровнем риска (MVP). Оценки сложности и стоимости обновлены по данным Nedra.</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-number">108</div>
+      <div class="kpi-label">Всего инициатив</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-number">94</div>
+      <div class="kpi-label">ИИ-инициативы</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-number">39</div>
+      <div class="kpi-label">MVP-проекты</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-number">9</div>
+      <div class="kpi-label">Направлений</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 24px;">
+      <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">13 инициатив — классическая автоматизация / RPA</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.6;">Рекомендованы для решения без применения ИИ — более простые и быстрые инструменты (проверка лимитов, рассылки, сопоставление данных)</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 24px;">
+      <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Критерии отнесения к MVP</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.6;">Интегральная оценка заказчика ≥ 1.4 балла при уровне риска «Низкий» — гарантия высокого эффекта и предсказуемости реализации</div>
+    </div>
+  </div>
+  <div class="slide-number">02</div>
+</div>
+
+<!-- SLIDE 3: Сводная таблица -->
+<div class="slide" id="s2">
+  <span class="section-badge badge-green">Сводка</span>
+  <div class="slide-title">Портфель MVP по направлениям</div>
+  <div class="slide-subtitle">9 AI-сотрудников, 39 проектов MVP</div>
+
+<table class="summary-table">
+    <thead>
+      <tr>
+        <th>AI-сотрудник</th>
+        <th>Всего инициатив</th>
+        <th>MVP</th>
+        <th>Макс. оценка</th>
+        <th>Средн. оценка</th>
+        <th>Ключевое КПЭ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>AI-ассистент</strong></td>
+        <td>36</td>
+        <td style="color:#667eea; font-weight:800; font-size:18px;">11</td>
+        <td>2.50</td>
+        <td>0.84</td>
+        <td>Автоматизация ручного сбора</td>
+      </tr>
+      <tr>
+        <td><strong>AI-юрист</strong></td>
+        <td>19</td>
+        <td style="color:#a78bfa; font-weight:800; font-size:18px;">9</td>
+        <td>2.50</td>
+        <td>0.95</td>
+        <td>–40–60% времени на договоры</td>
+      </tr>
+      <tr>
+        <td><strong>AI-делопроизводитель</strong></td>
+        <td>18</td>
+        <td style="color:#00f2fe; font-weight:800; font-size:18px;">9</td>
+        <td>2.50</td>
+        <td>1.03</td>
+        <td>В 3–5 раз быстрее поиск</td>
+      </tr>
+      <tr>
+        <td><strong>AI-инженер ПБУ</strong></td>
+        <td>9</td>
+        <td style="color:#f5576c; font-weight:800; font-size:18px;">4</td>
+        <td>2.00</td>
+        <td>0.86</td>
+        <td>–40% времени на учёт СЗЧ</td>
+      </tr>
+      <tr>
+        <td><strong>AI-закупщик</strong></td>
+        <td>6</td>
+        <td style="color:#4facfe; font-weight:800; font-size:18px;">3</td>
+        <td>2.50</td>
+        <td>1.24</td>
+        <td>–30–50% времени на закупки</td>
+      </tr>
+      <tr>
+        <td><strong>AI-тренер</strong></td>
+        <td>2</td>
+        <td style="color:#f093fb; font-weight:800; font-size:18px;">2</td>
+        <td>1.67</td>
+        <td>1.33</td>
+        <td>Автоматизация тестирования</td>
+      </tr>
+      <tr>
+        <td><strong>AI-HR</strong></td>
+        <td>1</td>
+        <td style="color:#4facfe; font-weight:800; font-size:18px;">1</td>
+        <td>1.17</td>
+        <td>1.17</td>
+        <td>–50% на скрининг резюме</td>
+      </tr>
+      <tr>
+        <td><strong>AI-финансист</strong></td>
+        <td>2</td>
+        <td style="color:#4facfe; font-weight:800; font-size:18px;">0</td>
+        <td>1.00</td>
+        <td>1.00</td>
+        <td>–30–50% на отчётность</td>
+      </tr>
+      <tr>
+        <td><strong>AI-логист</strong></td>
+        <td>3</td>
+        <td style="color:rgba(255,255,255,0.2); font-weight:800; font-size:18px;">0</td>
+        <td>1.50</td>
+        <td>0.58</td>
+        <td>Требует доработки</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.4);">
+    Примечание: MVP = проекты с уровнем риска «Низкий» (🟢). Всего 94 AI-инициативы, 39 с низким риском.
+  </div>
+  <div class="slide-number">03</div>
+</div>
+
+<!-- SLIDE 4: AI-закупщик -->
+<div class="slide" id="s3">
+  <span class="section-badge badge-blue">Направление 1</span>
+  <div class="slide-title">AI-закупщик</div>
+  <div class="slide-subtitle">Автоматизация подготовки, сопровождения и анализа закупочной документации</div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 10px;">
+    <div>
+      <div class="role-kpi">Общее КПЭ: сокращение времени на подготовку и сопровождение закупок на <strong>30–50%</strong>; исключение дублирующих закупок; оптимизация запасов МТР</div>
+
+      <div style="margin-top: 20px;">
+        <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">MVP-сценарии</div>
+        <div class="mvp-list" style="grid-template-columns: 1fr;">
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">ИИ-помощник для закупщика</div><div class="mvp-score">2.0</div></div>
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Анализ коммерческих предложений</div><div class="mvp-score">2.0</div></div>
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">ИИ-помощник для инициатора</div><div class="mvp-score">1.8</div></div>
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Анализ дублирующих заявок (3-6 мес)</div><div class="mvp-score">1.4</div></div>
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Прогнозирование потребности (6+ мес)</div><div class="mvp-score">1.0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div style="background: rgba(79,172,254,0.1); border-radius: 14px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 800; color: #4facfe;">5</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">MVP</div>
+        </div>
+        <div style="background: rgba(79,172,254,0.1); border-radius: 14px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 800; color: #4facfe;">12</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">Всего иниц.</div>
+        </div>
+      </div>
+      <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 20px;">
+        <div style="font-size: 13px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Блоки-инициаторы</div>
+        <div class="tag-list">
+          <span class="tag">БМТС</span>
+          <span class="tag">Блок Главного инженера / ОИСМ</span>
+          <span class="tag">Блок Главного инженера / ПБУ</span>
+          <span class="tag">Блок морской логистики</span>
+        </div>
+        <div style="font-size: 13px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 10px;">Контакт</div>
+        <div style="font-size: 15px; color: rgba(255,255,255,0.7);">Макаров А.Б.</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">04</div>
+</div>
+
+<!-- SLIDE 5: AI-юрист -->
+<div class="slide" id="s4">
+  <span class="section-badge badge-purple">Направление 2</span>
+  <div class="slide-title">AI-юрист</div>
+  <div class="slide-subtitle">Автоматизация договорной работы, перевода, вычитки и протоколирования</div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 10px;">
+    <div>
+      <div class="role-kpi">Общее КПЭ: сокращение времени на обработку и согласование договорных документов на <strong>40–60%</strong>; снижение юридических рисков; экономия на рутинных операциях с текстами</div>
+
+      <div style="margin-top: 20px;">
+        <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">MVP-сценарии (10 проектов)</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <div class="mvp-item" style="flex: 1 1 45%;"><div class="mvp-dot"></div><div class="mvp-name">Проверка комплектности заявок (3-6 мес)</div><div class="mvp-score">2.0</div></div>
+          <div class="mvp-item" style="flex: 1 1 45%;"><div class="mvp-dot"></div><div class="mvp-name">Классификация замечаний к договорам (3-6 мес)</div><div class="mvp-score">2.0</div></div>
+          <div class="mvp-item" style="flex: 1 1 45%;"><div class="mvp-dot"></div><div class="mvp-name">Перевод юридических текстов (1-3 мес)</div><div class="mvp-score">2.0</div></div>
+          <div class="mvp-item" style="flex: 1 1 45%;"><div class="mvp-dot"></div><div class="mvp-name">Проверка текстов на опечатки (1-3 мес)</div><div class="mvp-score">2.0</div></div>
+          <div class="mvp-item" style="flex: 1 1 45%;"><div class="mvp-dot"></div><div class="mvp-name">Трансформация ЛНА в бизнес-формат (1-3 мес)</div><div class="mvp-score">2.0</div></div>
+          <div class="mvp-item" style="flex: 1 1 45%;"><div class="mvp-dot"></div><div class="mvp-name">Мемо совещаний (3-6 мес)</div><div class="mvp-score">2.0</div></div>
+          <div class="mvp-item" style="flex: 1 1 45%;"><div class="mvp-dot"></div><div class="mvp-name">Реагирование на нештатные ситуации</div><div class="mvp-score">1.4</div></div>
+          <div class="mvp-item" style="flex: 1 1 45%;"><div class="mvp-dot"></div><div class="mvp-name">Проверка формы договоров (6+ мес)</div><div class="mvp-score">1.0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div style="background: rgba(167,139,250,0.15); border-radius: 14px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 800; color: #a78bfa;">10</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">MVP</div>
+        </div>
+        <div style="background: rgba(167,139,250,0.15); border-radius: 14px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 800; color: #a78bfa;">24</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">Всего иниц.</div>
+        </div>
+      </div>
+      <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 20px;">
+        <div style="font-size: 13px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Блоки-инициаторы</div>
+        <div style="font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.8; margin-bottom: 14px;">Блок правовых и корпоративных вопросов, БМТС, Блок Главного инженера / ОИСМ, Блок Главного инженера / ПБУ, БЭК</div>
+        <div style="font-size: 13px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Ключевой контакт</div>
+        <div style="font-size: 15px; color: rgba(255,255,255,0.7);">Марковских К.Д.</div>
+        <div style="font-size: 13px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 10px;">Примечание</div>
+        <div style="font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.5;">Рекордсмен по числу высокооценённых инициатив. Все MVP с оценкой 2.0 — зрелые NLP-задачи с понятной метрикой.</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">05</div>
+</div>
+
+<!-- SLIDE 6: AI-делопроизводитель -->
+<div class="slide" id="s5">
+  <span class="section-badge badge-blue">Направление 3</span>
+  <div class="slide-title">AI-делопроизводитель</div>
+  <div class="slide-subtitle">Семантический поиск, обработка корреспонденции, проверка и учёт документации</div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 10px;">
+    <div>
+      <div class="role-kpi">Общее КПЭ: ускорение поиска информации в <strong>3–5 раз</strong>; сокращение времени на обработку корреспонденции; снижение ошибок цитирования; автоматизация рутинных операций с документами</div>
+
+      <div style="margin-top: 20px;">
+        <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Ключевые MVP (из 11)</div>
+        <div class="mvp-list" style="grid-template-columns: 1fr;">
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Семантический поиск по ЛНА и ОРД (1-3 мес)</div><div class="mvp-score">2.0</div></div>
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">База данных НМД (ИИ-чат по нормативам) (1-3 мес)</div><div class="mvp-score">1.8</div></div>
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">NLP для анализа почты (3-6 мес)</div><div class="mvp-score">1.8</div></div>
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Проверка текстов на опечатки (1-3 мес)</div><div class="mvp-score">1.8</div></div>
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">ИИ-специалист по проверке документации (3-6 мес)</div><div class="mvp-score">1.4</div></div>
+          <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Роботизация обработки корреспонденции (3-6 мес)</div><div class="mvp-score">1.4</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div style="background: rgba(79,172,254,0.1); border-radius: 14px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 800; color: #4facfe;">11</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">MVP</div>
+        </div>
+        <div style="background: rgba(79,172,254,0.1); border-radius: 14px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 800; color: #4facfe;">20</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">Всего иниц.</div>
+        </div>
+      </div>
+      <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 20px;">
+        <div style="font-size: 13px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Блоки-инициаторы (10 блоков)</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;">
+          <span class="tag">ОИСМ</span><span class="tag">ПБУ</span><span class="tag">БЭК</span><span class="tag">МЛРФ</span><span class="tag">БМТС</span><span class="tag">УКК</span><span class="tag">ОДОУ</span><span class="tag">БПКВ</span>
+        </div>
+        <div style="font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.5;">База НМД, вопросно-ответный модуль и справочная система — по сути один продукт «Корпоративный ИИ-поиск». Рекомендуется объединить.</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">06</div>
+</div>
+
+<!-- SLIDE 7: Инженер ПБУ + Тренер + HR + Финансист -->
+<div class="slide" id="s6">
+  <span class="section-badge badge-green">Компактные направления</span>
+  <div class="slide-title"> ещё 4 направления</div>
+  <div class="slide-subtitle">AI-инженер ПБУ, тренер, HR и финансист — быстрые победы с локальным фокусом</div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 10px;">
+
+    <div class="role-card">
+      <div class="role-header">
+        <div class="role-name">AI-инженер ПБУ</div>
+        <div class="role-stats">
+          <div class="role-stat"><div class="role-stat-value">3</div><div class="role-stat-label">MVP</div></div>
+          <div class="role-stat"><div class="role-stat-value">10</div><div class="role-stat-label">иниц.</div></div>
+        </div>
+      </div>
+      <div class="role-kpi">КПЭ: –40% времени на поиск СЗЧ и учёт подрядчиков; снижение простоя оборудования</div>
+      <div class="mvp-list" style="grid-template-columns: 1fr;">
+        <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Автоматизация ежедневных сводок</div><div class="mvp-score">2.0</div></div>
+        <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Контроль графика подрядчиков на ППБУ</div><div class="mvp-score">1.8</div></div>
+        <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Помощь в местонахождении СЗЧ</div><div class="mvp-score">1.8</div></div>
+      </div>
+    </div>
+
+    <div class="role-card">
+      <div class="role-header">
+        <div class="role-name">AI-тренер</div>
+        <div class="role-stats">
+          <div class="role-stat"><div class="role-stat-value">2</div><div class="role-stat-label">MVP</div></div>
+          <div class="role-stat"><div class="role-stat-value">3</div><div class="role-stat-label">иниц.</div></div>
+        </div>
+      </div>
+      <div class="role-kpi">КПЭ: автоматизация тестирования; –50% времени на экзамены; экономия на озвучке курсов</div>
+      <div class="mvp-list" style="grid-template-columns: 1fr;">
+        <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">ИИ-экзаменатор</div><div class="mvp-score">1.8</div></div>
+        <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">ИИ-озвучка онлайн-курсов</div><div class="mvp-score">1.4</div></div>
+      </div>
+    </div>
+
+    <div class="role-card">
+      <div class="role-header">
+        <div class="role-name">AI-HR</div>
+        <div class="role-stats">
+          <div class="role-stat"><div class="role-stat-value">1</div><div class="role-stat-label">MVP</div></div>
+          <div class="role-stat"><div class="role-stat-value">2</div><div class="role-stat-label">иниц.</div></div>
+        </div>
+      </div>
+      <div class="role-kpi">КПЭ: –50% времени на скрининг резюме; снижение нагрузки на HR; высвобождение ресурса</div>
+      <div class="mvp-list" style="grid-template-columns: 1fr;">
+        <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Рекрутмент (ИИ-скрининг резюме)</div><div class="mvp-score">1.8</div></div>
+      </div>
+    </div>
+
+    <div class="role-card">
+      <div class="role-header">
+        <div class="role-name">AI-финансист</div>
+        <div class="role-stats">
+          <div class="role-stat"><div class="role-stat-value">1</div><div class="role-stat-label">MVP</div></div>
+          <div class="role-stat"><div class="role-stat-value">3</div><div class="role-stat-label">иниц.</div></div>
+        </div>
+      </div>
+      <div class="role-kpi">КПЭ: –30–50% времени на управленческую отчётность; ускорение цикла целеполагания</div>
+      <div class="mvp-list" style="grid-template-columns: 1fr;">
+        <div class="mvp-item"><div class="mvp-dot"></div><div class="mvp-name">Постановка целей в области качества</div><div class="mvp-score">1.8</div></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="slide-number">07</div>
+</div>
+
+
+<!-- SLIDE 9: KPI MAPPING -->
+<div class="slide" id="s8">
+  <span class="section-badge badge-blue">КПЭ</span>
+  <div class="slide-title">Влияние на ключевые показатели</div>
+  <div class="slide-subtitle">Каждый «AI-сотрудник» влияет на конкретные КПЭ — от сокращения времени до экономии ФОТ</div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 10px;">
+
+    <div class="role-card" style="border-left: 4px solid #4facfe;">
+      <div class="role-name" style="font-size: 20px; margin-bottom: 12px;">AI-закупщик</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="background: rgba(79,172,254,0.1); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #4facfe;">30–50%</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">сокращение времени на закупки</div>
+        </div>
+        <div style="background: rgba(79,172,254,0.1); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #4facfe;">↓ дубли</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">исключение дублирующих закупок</div>
+        </div>
+        <div style="background: rgba(79,172,254,0.1); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #4facfe;">↓ запасы</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">оптимизация остатков МТР</div>
+        </div>
+        <div style="background: rgba(79,172,254,0.1); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #4facfe;">точнее план</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">повышение точности планирования</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="role-card" style="border-left: 4px solid #a78bfa;">
+      <div class="role-name" style="font-size: 20px; margin-bottom: 12px;">AI-юрист</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="background: rgba(167,139,250,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #a78bfa;">40–60%</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">сокращение времени на договоры</div>
+        </div>
+        <div style="background: rgba(167,139,250,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #a78bfa;">↓ риски</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">юридические и репутационные</div>
+        </div>
+        <div style="background: rgba(167,139,250,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #a78bfa;">↓ итерации</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">меньше согласований</div>
+        </div>
+        <div style="background: rgba(167,139,250,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #a78bfa;">↓ расходы</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">на внешние переводы</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="role-card" style="border-left: 4px solid #00f2fe;">
+      <div class="role-name" style="font-size: 20px; margin-bottom: 12px;">AI-делопроизводитель</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="background: rgba(0,242,254,0.1); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #00f2fe;">3–5×</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">быстрее поиск</div>
+        </div>
+        <div style="background: rgba(0,242,254,0.1); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #00f2fe;">30–50%</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">экономия времени на поиск</div>
+        </div>
+        <div style="background: rgba(0,242,254,0.1); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #00f2fe;">3–4×</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">быстрее проверка док-ции</div>
+        </div>
+        <div style="background: rgba(0,242,254,0.1); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #00f2fe;">точнее</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">ссылки на НТД</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="role-card" style="border-left: 4px solid #f5576c;">
+      <div class="role-name" style="font-size: 20px; margin-bottom: 12px;">AI-инженер ПБУ</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="background: rgba(245,87,108,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #f5576c;">40%</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">сокращение времени на учёт СЗЧ</div>
+        </div>
+        <div style="background: rgba(245,87,108,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #f5576c;">↓ простой</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">снижение простоя оборудования</div>
+        </div>
+        <div style="background: rgba(245,87,108,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #f5576c;">↑ контроль</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">технологический процесс</div>
+        </div>
+        <div style="background: rgba(245,87,108,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #f5576c;">без Excel</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5);">автоматизация сводок</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px;">
+    <div class="role-card" style="padding: 20px; border-left: 4px solid #f093fb;">
+      <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">AI-тренер</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.7);">Автоматизация тестирования; экономия на озвучке курсов; ↓ нагрузка на ОТ и ПБ</div>
+    </div>
+    <div class="role-card" style="padding: 20px; border-left: 4px solid #667eea;">
+      <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">AI-HR</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.7);">–50% на скрининг резюме; высвобождение HR-ресурса</div>
+    </div>
+    <div class="role-card" style="padding: 20px; border-left: 4px solid #4facfe;">
+      <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">AI-финансист</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.7);">–30–50% на управленческую отчётность; ускорение целеполагания</div>
+    </div>
+    <div class="role-card" style="padding: 20px; border-left: 4px solid rgba(255,255,255,0.3);">
+      <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">AI-ассистент</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.7);">Автоматизация ручного сбора; оптимальное распределение ресурсов</div>
+    </div>
+  </div>
+  <div class="slide-number">08</div>
+</div>
+
+<!-- SLIDE 10: ROADMAP -->
+<div class="slide" id="s9">
+  <span class="section-badge badge-green">Дорожная карта</span>
+  <div class="slide-title">Дорожная карта запуска MVP</div>
+  <div class="slide-subtitle">Последовательность запуска проектов по трём фокусным направлениям. <br> C - Complexity от 1 до 10 </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px;">
+
+    <div style="background: rgba(79,172,254,0.08); border: 1px solid rgba(79,172,254,0.2); border-radius: 16px; padding: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #4facfe, #00f2fe); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #0a0a1a;">1</div>
+        <div>
+          <div style="font-size: 16px; font-weight: 700; color: #4facfe;">AI-закупщик</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.4);">3 проекта • <span style="color:#4facfe;">13.5 млн руб.</span></div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: #4facfe; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-left: 3px solid #4facfe; padding-left: 8px;">Быстрые победы (1–3 мес)</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+        • ИИ-помощник для закупщика (c=3) — 3.5 млн<br>
+        • Анализ коммерческих предложений (c=4) — 4.5 млн
+      </div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px; border-left: 3px solid rgba(79,172,254,0.4); padding-left: 8px;">Средние (3–6 мес)</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+        • ИИ-помощник для инициатора (c=5) — 5.5 млн
+      </div>
+    </div>
+
+    <div style="background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 16px; padding: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #667eea, #a78bfa); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #fff;">2</div>
+        <div>
+          <div style="font-size: 16px; font-weight: 700; color: #a78bfa;">AI-юрист</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.4);">9 проектов • <span style="color:#a78bfa;">65.0 млн руб.</span></div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: #a78bfa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-left: 3px solid #a78bfa; padding-left: 8px;">Быстрые победы (1–3 мес)</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+        • Проверка текстов на опечатки (c=3) — 2.5 млн<br>
+        • Перевод юридических текстов (c=4) — 4.5 млн
+      </div>
+      <div style="font-size: 12px; color: rgba(167,139,250,0.7); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px; border-left: 3px solid rgba(167,139,250,0.4); padding-left: 8px;">Средние (3–6 мес)</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+        • Анализ замечаний к договорам (c=5) — 6.0 млн<br>
+        • Мемо совещаний (c=5) — 6.0 млн
+      </div>
+      <div style="font-size: 12px; color: rgba(167,139,250,0.5); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px; border-left: 3px solid rgba(167,139,250,0.2); padding-left: 8px;">Комплексные (6+ мес)</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+        • Трансформация ЛНА (c=6) — 7.0 млн<br>
+        • Ассистент аудитора (c=6) — 8.0 млн
+      </div>
+    </div>
+
+    <div style="background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.2); border-radius: 16px; padding: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #00f2fe, #4facfe); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #0a0a1a;">3</div>
+        <div>
+          <div style="font-size: 16px; font-weight: 700; color: #00f2fe;">AI-делопроизводитель</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.4);">9 проектов • <span style="color:#00f2fe;">63.0 млн руб.</span></div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: #00f2fe; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-left: 3px solid #00f2fe; padding-left: 8px;">Быстрые победы (1–3 мес)</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+        • Проверка комплектности заявок (c=4) — 4.0 млн
+      </div>
+      <div style="font-size: 12px; color: rgba(0,242,254,0.7); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px; border-left: 3px solid rgba(0,242,254,0.4); padding-left: 8px;">Средние (3–6 мес)</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+        • Семантический поиск по ЛНА (c=5) — 6.0 млн<br>
+        • База данных НМД (c=5) — 6.0 млн<br>
+        • NLP для анализа почты (c=5) — 6.0 млн
+      </div>
+      <div style="font-size: 12px; color: rgba(0,242,254,0.5); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px; border-left: 3px solid rgba(0,242,254,0.2); padding-left: 8px;">Комплексные (6+ мес)</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+        • Анализ нормативной документации (c=6) — 7.0 млн<br>
+        • Роботизация обработки корреспонденции (c=6) — 7.0 млн
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 30px; margin-top: 24px; justify-content: center;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="width: 12px; height: 12px; background: rgba(79,172,254,0.5); border-radius: 3px;"></div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.6);">AI-закупщик</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="width: 12px; height: 12px; background: rgba(167,139,250,0.5); border-radius: 3px;"></div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.6);">AI-юрист</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="width: 12px; height: 12px; background: rgba(0,242,254,0.5); border-radius: 3px;"></div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.6);">AI-делопроизводитель</div>
+    </div>
+  </div>
+
+  <div class="slide-number">09</div>
+</div>
+
+<!-- SLIDE 11: Бюджет MVP -->
+<div class="slide" id="s10">
+  <span class="section-badge badge-green">Приложение</span>
+  <div class="slide-title">Бюджет AI-портфеля</div>
+  <div class="slide-subtitle">Оценочная стоимость реализации по 9 направлениям AI-сотрудников</div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 30px;">
+    <div class="kpi-card" style="border-top: 4px solid #4facfe;">
+      <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">AI-закупщик</div>
+      <div class="kpi-number" style="font-size: 56px;">13.5</div>
+      <div style="font-size: 16px; color: rgba(255,255,255,0.5); margin-bottom: 16px;">млн руб.</div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.4); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+        3 проекта • 2 быстрые победы
+      </div>
+    </div>
+    <div class="kpi-card" style="border-top: 4px solid #a78bfa;">
+      <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">AI-юрист</div>
+      <div class="kpi-number" style="font-size: 56px;">65.0</div>
+      <div style="font-size: 16px; color: rgba(255,255,255,0.5); margin-bottom: 16px;">млн руб.</div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.4); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+        9 проектов • 2 быстрые победы
+      </div>
+    </div>
+    <div class="kpi-card" style="border-top: 4px solid #00f2fe;">
+      <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">AI-делопроизводитель</div>
+      <div class="kpi-number" style="font-size: 56px;">63.0</div>
+      <div style="font-size: 16px; color: rgba(255,255,255,0.5); margin-bottom: 16px;">млн руб.</div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.4); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+        9 проектов • 1 быстрая победа
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top: 40px; background: rgba(79,172,254,0.1); border: 1px solid rgba(79,172,254,0.2); border-radius: 20px; padding: 30px 36px; text-align: center;">
+    <div style="font-size: 14px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">Общая оценочная стоимость AI-портфеля</div>
+    <div style="font-size: 72px; font-weight: 900; background: linear-gradient(135deg, #4facfe 0%, #667eea 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">258.5</div>
+    <div style="font-size: 24px; color: rgba(255,255,255,0.6);">млн руб.</div>
+  </div>
+
+  <div style="margin-top: 30px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 24px;">
+    <div style="font-size: 14px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">Стоимость MVP по направлениям</div>
+    <table style="width: 100%; font-size: 14px; color: rgba(255,255,255,0.8);">
+      <tbody>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">AI-ассистент</td><td style="text-align:right; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color:#667eea; font-weight:700;">75.0 млн</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">AI-юрист</td><td style="text-align:right; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color:#a78bfa; font-weight:700;">65.0 млн</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">AI-делопроизводитель</td><td style="text-align:right; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color:#00f2fe; font-weight:700;">63.0 млн</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">AI-инженер ПБУ</td><td style="text-align:right; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color:#f5576c; font-weight:700;">23.5 млн</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">AI-закупщик</td><td style="text-align:right; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color:#4facfe; font-weight:700;">13.5 млн</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">AI-тренер</td><td style="text-align:right; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color:#f093fb; font-weight:700;">12.5 млн</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">AI-HR</td><td style="text-align:right; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color:#667eea; font-weight:700;">6.0 млн</td></tr>
+        <tr><td style="padding: 8px 0;">AI-финансист</td><td style="text-align:right; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color:#4facfe; font-weight:700;">5.5 млн</td></tr>
+        <tr><td style="padding: 8px 0;">AI-логист</td><td style="text-align:right; padding: 8px 0; color:rgba(255,255,255,0.3); font-weight:700;">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top: 20px; background: rgba(0,242,254,0.05); border: 1px solid rgba(0,242,254,0.2); border-radius: 14px; padding: 20px; text-align: center;">
+    <div style="font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 8px;">Методология расчёта</div>
+    <div style="font-size: 13px; color: rgba(255,255,255,0.6);">Стоимость = среднее значение диапазона из столбца «Оценка MVP Nedra» (напр. "3-4 млн" → 3.5 млн)</div>
+  </div>
+
+  <div class="slide-number">10</div>
+</div>
+
+</body>
+</html>

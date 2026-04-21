@@ -1,0 +1,13 @@
+<svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- nedra text -->
+  <text x="10" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#1a1a6e" letter-spacing="-1">
+    <tspan>nedra</tspan>
+  </text>
+  <!-- Small square dot above n -->
+  <rect x="10" y="8" width="5" height="5" fill="#1a1a6e"/>
+  
+  <!-- MIND text -->
+  <text x="10" y="62" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#a78bfa" letter-spacing="4">
+    <tspan>MIND</tspan>
+  </text>
+</svg>

@@ -1,0 +1,751 @@
+{
+  "employees": [
+    {
+      "id": "clerk",
+      "name": "Анна Делопроизводитель",
+      "short_name": "Анна",
+      "role": "Делопроизводство",
+      "avatar": "👩‍💼",
+      "color": "#00d4ff",
+      "status": "active",
+      "description": "Отвечаю за проверку входящих заявок на комплектность, контроль оформления документов и семантический поиск по локальным нормативным актам (ЛНА) и ОРД.",
+      "responsibilities": [
+        "Проверка комплектности заявок (закупки, поставки, ремонт)",
+        "Валидация реквизитов и согласований",
+        "Поиск по внутренним регламентам и ЛНА",
+        "Формирование отчётов о комплектности",
+        "Маршрутизация заявок по маршрутам согласования"
+      ],
+      "tools": [
+        {"name": "document_checker", "label": "Проверка комплектности", "icon": "✅"},
+        {"name": "text_analyzer", "label": "Анализ текста", "icon": "📝"},
+        {"name": "document_validator", "label": "Валидация форматов", "icon": "🔎"},
+        {"name": "semantic_search", "label": "Семантический поиск", "icon": "🔍"},
+        {"name": "approval_router", "label": "Маршрут согласования", "icon": "🛤️"}
+      ],
+      "scenarios": [
+        {
+          "id": "check_application_124",
+          "title": "📋 Проверить заявку №124",
+          "category": "check",
+          "request": "Проверь заявку №124 на комплектность и оформление",
+          "clarify": {
+            "question": "Интересует полная проверка или только обязательные поля?",
+            "suggestions": ["Полная проверка", "Только обязательные поля"]
+          },
+          "plan": {
+            "title": "Проверка комплектности заявки №124",
+            "steps": [
+              {"name": "Загрузить заявку №124", "tool": "application_loader", "source": "База заявок ГШП", "icon": "📥"},
+              {"name": "Извлечь ключевые поля", "tool": "text_analyzer", "source": "Заявка_124.pdf", "icon": "📝"},
+              {"name": "Проверить обязательные поля", "tool": "document_checker", "source": "Регламент проверки", "icon": "✅"},
+              {"name": "Сверить согласования", "tool": "document_validator", "source": "Реестр согласований", "icon": "🔎"},
+              {"name": "Сформировать отчёт", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Заявка_124.pdf", "Регламент_проверки_заявок_v3.docx", "Перечень_обязательных_полей.xlsx"]
+          },
+          "proactive": [
+            {"label": "Направить инициатору письмо с замечаниями", "request": "Сформируй письмо инициатору заявки №124 с перечнем замечаний", "scenario_id": "send_issues_to_initiator"},
+            {"label": "Найти похожие заявки за апрель 2026", "request": "Покажи все заявки на поставки за апрель 2026", "scenario_id": "list_applications_by_period"}
+          ]
+        },
+        {
+          "id": "check_application_125",
+          "title": "✅ Проверить заявку №125",
+          "category": "check",
+          "request": "Проверь заявку №125 на комплектность",
+          "plan": {
+            "title": "Проверка комплектности заявки №125",
+            "steps": [
+              {"name": "Загрузить заявку №125", "tool": "application_loader", "source": "База заявок ГШП", "icon": "📥"},
+              {"name": "Извлечь ключевые поля", "tool": "text_analyzer", "source": "Заявка_125.pdf", "icon": "📝"},
+              {"name": "Проверить обязательные поля", "tool": "document_checker", "source": "Регламент проверки", "icon": "✅"},
+              {"name": "Сверить согласования", "tool": "document_validator", "source": "Реестр согласований", "icon": "🔎"},
+              {"name": "Сформировать отчёт", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Заявка_125.pdf", "Регламент_проверки_заявок_v3.docx"]
+          },
+          "proactive": [
+            {"label": "Запустить маршрут согласования", "request": "Запусти маршрут согласования по заявке №125", "scenario_id": "route_application_approval"},
+            {"label": "Передать юристу для правового анализа договора на ремонт", "request": "Проанализируй договор на ремонт насоса НЦ-320 (Д-2026-002) на правовые риски", "scenario_id": "analyze_contract_repair", "target_employee_id": "lawyer"}
+          ]
+        },
+        {
+          "id": "check_application_127",
+          "title": "🛠️ Проверить заявку №127 (ремонт платформы)",
+          "category": "check",
+          "request": "Проверь заявку №127 на комплектность",
+          "plan": {
+            "title": "Проверка комплектности заявки №127",
+            "steps": [
+              {"name": "Загрузить заявку №127", "tool": "application_loader", "source": "База заявок ГШП", "icon": "📥"},
+              {"name": "Извлечь ключевые поля", "tool": "text_analyzer", "source": "Заявка_127.pdf", "icon": "📝"},
+              {"name": "Проверить обязательные поля", "tool": "document_checker", "source": "Регламент проверки", "icon": "✅"},
+              {"name": "Сверить согласования и лимиты ЦФО", "tool": "document_validator", "source": "Реестр согласований", "icon": "🔎"},
+              {"name": "Сформировать отчёт", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Заявка_127.pdf", "Регламент_проверки_заявок_v3.docx"]
+          },
+          "proactive": [
+            {"label": "Передать в закупки: запустить тендер", "request": "Запусти процесс подбора подрядчика по заявке №127", "scenario_id": "compare_kp_repair_platform", "target_employee_id": "procurement"},
+            {"label": "Сформировать письмо инициатору", "request": "Сформируй письмо инициатору заявки №127 с перечнем замечаний", "scenario_id": "send_issues_to_initiator"}
+          ]
+        },
+        {
+          "id": "route_application_approval",
+          "title": "🛤️ Маршрут согласования",
+          "category": "route",
+          "request": "Запусти маршрут согласования заявки",
+          "plan": {
+            "title": "Запуск маршрута согласования",
+            "steps": [
+              {"name": "Загрузить заявку", "tool": "application_loader", "source": "База заявок ГШП", "icon": "📥"},
+              {"name": "Определить маршрут согласования", "tool": "approval_router", "source": "Регламент ОРД-2024-03", "icon": "🛤️"},
+              {"name": "Сформировать уведомления согласующим", "tool": "text_generator", "source": "Шаблон уведомления", "icon": "✉️"},
+              {"name": "Передать в СЭД ГШП", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Регламент_ОРД-2024-03.docx"]
+          },
+          "proactive": [
+            {"label": "Проверить ход согласования", "request": "Покажи статус согласования заявки", "scenario_id": "check_approval_status"}
+          ]
+        },
+        {
+          "id": "send_issues_to_initiator",
+          "title": "✉️ Письмо инициатору с замечаниями",
+          "category": "generate",
+          "request": "Сформируй письмо инициатору с перечнем замечаний по заявке",
+          "plan": {
+            "title": "Подготовка письма инициатору",
+            "steps": [
+              {"name": "Загрузить заявку и отчёт", "tool": "application_loader", "source": "База заявок ГШП", "icon": "📥"},
+              {"name": "Подготовить список замечаний", "tool": "text_analyzer", "source": "Отчёт о комплектности", "icon": "📝"},
+              {"name": "Сгенерировать текст письма", "tool": "text_generator", "source": "Шаблон служебной записки", "icon": "✍️"},
+              {"name": "Сформировать документ", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Шаблон_служебной_записки.docx"]
+          },
+          "proactive": [
+            {"label": "Направить юристу для проверки формулировок", "request": "Проверь текст служебной записки по заявке на опечатки и стиль", "scenario_id": "proofread_draft", "target_employee_id": "lawyer"}
+          ]
+        },
+        {
+          "id": "list_applications_by_period",
+          "title": "📑 Список заявок за период",
+          "category": "list",
+          "request": "Покажи заявки за выбранный период",
+          "plan": {
+            "title": "Подбор заявок по фильтру",
+            "steps": [
+              {"name": "Сформировать фильтр", "tool": "text_analyzer", "source": "Запрос пользователя", "icon": "📝"},
+              {"name": "Запросить из реестра заявок", "tool": "application_list_loader", "source": "База заявок ГШП", "icon": "📥"},
+              {"name": "Сформировать таблицу", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Реестр заявок ГШП"]
+          },
+          "proactive": [
+            {"label": "Проверить первую из списка", "request": "Проверь заявку №124 на комплектность", "scenario_id": "check_application_124"}
+          ]
+        },
+        {
+          "id": "search_lna_vacation",
+          "title": "🔍 Поиск в ЛНА: отпуск по уходу",
+          "category": "search",
+          "request": "Найди в ЛНА информацию об отпуске по уходу за ребёнком",
+          "plan": {
+            "title": "Семантический поиск по ЛНА и ОРД",
+            "steps": [
+              {"name": "Сформировать поисковый запрос", "tool": "text_analyzer", "source": "Запрос пользователя", "icon": "📝"},
+              {"name": "Найти релевантные документы", "tool": "semantic_search", "source": "База ЛНА ГШП", "icon": "🔍"},
+              {"name": "Извлечь ключевые фрагменты", "tool": "text_analyzer", "source": "Найденные документы", "icon": "📝"},
+              {"name": "Сформировать ответ с цитатами", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["База ЛНА ГШП"]
+          },
+          "proactive": [
+            {"label": "Подготовить шаблон заявления", "request": "Сделай шаблон заявления на отпуск по уходу за ребёнком", "scenario_id": "generate_vacation_application"},
+            {"label": "Передать ассистенту для справки сотруднику", "request": "Сделай справку о порядке оформления отпуска по уходу", "scenario_id": "generate_reference", "target_employee_id": "assistant"}
+          ]
+        },
+        {
+          "id": "generate_vacation_application",
+          "title": "📝 Шаблон заявления на отпуск",
+          "category": "generate",
+          "request": "Сделай шаблон заявления на отпуск",
+          "plan": {
+            "title": "Генерация шаблона заявления",
+            "steps": [
+              {"name": "Подобрать шаблон", "tool": "reference_builder", "source": "Шаблоны кадрового делопроизводства", "icon": "📇"},
+              {"name": "Заполнить реквизитами компании", "tool": "text_generator", "source": "—", "icon": "✍️"},
+              {"name": "Сформировать документ", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Шаблоны_кадрового_делопроизводства.docx"]
+          },
+          "proactive": []
+        },
+        {
+          "id": "check_approval_status",
+          "title": "⏱️ Статус согласования",
+          "category": "status",
+          "request": "Покажи статус согласования заявки",
+          "plan": {
+            "title": "Проверка статуса согласования",
+            "steps": [
+              {"name": "Загрузить заявку", "tool": "application_loader", "source": "База заявок ГШП", "icon": "📥"},
+              {"name": "Опросить маршрут согласования", "tool": "approval_router", "source": "СЭД ГШП", "icon": "🛤️"},
+              {"name": "Сформировать сводку", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": []
+          },
+          "proactive": []
+        }
+      ]
+    },
+    {
+      "id": "lawyer",
+      "name": "Александр Юрист",
+      "short_name": "Александр",
+      "role": "Юриспруденция",
+      "avatar": "⚖️",
+      "color": "#a78bfa",
+      "status": "active",
+      "description": "Провожу анализ договоров на правовые риски, проверяю тексты на опечатки и стилистические ошибки, перевожу юридические документы RU↔EN с сохранением терминологии.",
+      "responsibilities": [
+        "Анализ договоров на риски и соответствие 44-ФЗ / 223-ФЗ",
+        "Проверка юридических текстов на орфографию и стиль",
+        "Перевод договоров и деловых писем",
+        "Формирование правовых заключений",
+        "Подготовка протоколов разногласий"
+      ],
+      "tools": [
+        {"name": "contract_analyzer", "label": "Анализ договора", "icon": "📑"},
+        {"name": "risk_assessment", "label": "Оценка рисков", "icon": "⚠️"},
+        {"name": "legal_search", "label": "Поиск по праву", "icon": "📚"},
+        {"name": "text_proofreader", "label": "Проверка текста", "icon": "✏️"},
+        {"name": "legal_translator", "label": "Юр. перевод", "icon": "🌐"}
+      ],
+      "scenarios": [
+        {
+          "id": "analyze_contract_risks",
+          "title": "⚠️ Анализ договора Д-2026-001 на риски",
+          "category": "analyze",
+          "request": "Проанализируй договор Д-2026-001 на правовые риски",
+          "clarify": {
+            "question": "Нужен полный анализ или экспресс-проверка ключевых рисков?",
+            "suggestions": ["Полный анализ", "Экспресс-проверка"]
+          },
+          "plan": {
+            "title": "Правовой анализ договора Д-2026-001",
+            "steps": [
+              {"name": "Загрузить договор Д-2026-001", "tool": "contract_loader", "source": "СЭД ГШП", "icon": "📥"},
+              {"name": "Структурный разбор договора", "tool": "contract_analyzer", "source": "Договор_Д-2026-001.pdf", "icon": "📑"},
+              {"name": "Выявление правовых рисков", "tool": "risk_assessment", "source": "Матрица типовых рисков", "icon": "⚠️"},
+              {"name": "Сверка с 44-ФЗ и ГК РФ", "tool": "legal_search", "source": "База нормативных актов", "icon": "📚"},
+              {"name": "Сформировать правовое заключение", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Договор_Д-2026-001.pdf", "Матрица_рисков_ГШП.xlsx", "44-ФЗ (выдержки)"]
+          },
+          "proactive": [
+            {"label": "Подготовить протокол разногласий", "request": "Сформируй протокол разногласий по договору Д-2026-001", "scenario_id": "prepare_disagreement_protocol"},
+            {"label": "Передать в закупки — проверить контрагента", "request": "Проверь благонадёжность поставщика ООО \"ТехноСтрой\"", "scenario_id": "check_contractor", "target_employee_id": "procurement"}
+          ]
+        },
+        {
+          "id": "analyze_contract_repair",
+          "title": "🔧 Анализ договора на ремонт (Д-2026-002)",
+          "category": "analyze",
+          "request": "Проанализируй договор Д-2026-002 на правовые риски",
+          "plan": {
+            "title": "Правовой анализ договора Д-2026-002",
+            "steps": [
+              {"name": "Загрузить договор Д-2026-002", "tool": "contract_loader", "source": "СЭД ГШП", "icon": "📥"},
+              {"name": "Структурный разбор договора", "tool": "contract_analyzer", "source": "Договор_Д-2026-002.pdf", "icon": "📑"},
+              {"name": "Выявление правовых рисков", "tool": "risk_assessment", "source": "Матрица типовых рисков", "icon": "⚠️"},
+              {"name": "Сверка с 223-ФЗ", "tool": "legal_search", "source": "База нормативных актов", "icon": "📚"},
+              {"name": "Сформировать правовое заключение", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Договор_Д-2026-002.pdf", "Матрица_рисков_ГШП.xlsx"]
+          },
+          "proactive": [
+            {"label": "Подготовить протокол разногласий", "request": "Сформируй протокол разногласий по договору Д-2026-002", "scenario_id": "prepare_disagreement_protocol"},
+            {"label": "Запустить согласование у делопроизводителя", "request": "Запусти маршрут согласования договора Д-2026-002", "scenario_id": "route_application_approval", "target_employee_id": "clerk"}
+          ]
+        },
+        {
+          "id": "prepare_disagreement_protocol",
+          "title": "📜 Протокол разногласий",
+          "category": "draft",
+          "request": "Сформируй протокол разногласий по договору",
+          "plan": {
+            "title": "Подготовка протокола разногласий",
+            "steps": [
+              {"name": "Загрузить договор", "tool": "contract_loader", "source": "СЭД ГШП", "icon": "📥"},
+              {"name": "Извлечь спорные пункты из анализа рисков", "tool": "risk_assessment", "source": "Предыдущий анализ", "icon": "⚠️"},
+              {"name": "Сформулировать контрредакцию пунктов", "tool": "legal_translator", "source": "Корпоративные формулировки", "icon": "📝"},
+              {"name": "Сформировать протокол разногласий", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Договор_Д-2026-001.pdf"]
+          },
+          "proactive": [
+            {"label": "Согласовать с руководителем юр. службы", "request": "Отправь протокол разногласий на согласование", "scenario_id": "route_application_approval", "target_employee_id": "clerk"}
+          ]
+        },
+        {
+          "id": "proofread_letter",
+          "title": "✏️ Проверка делового письма Исх-45",
+          "category": "proofread",
+          "request": "Проверь письмо Исх-45-2024 на опечатки и стиль",
+          "plan": {
+            "title": "Проверка письма Исх-45-2024",
+            "steps": [
+              {"name": "Загрузить текст письма", "tool": "text_loader", "source": "Архив исходящих", "icon": "📥"},
+              {"name": "Проверка орфографии и пунктуации", "tool": "text_proofreader", "source": "Словарь + правила", "icon": "✏️"},
+              {"name": "Проверка стилистики", "tool": "text_proofreader", "source": "Шаблон делового письма", "icon": "📝"},
+              {"name": "Сформировать отчёт об ошибках", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Письмо_Исх-45-2024.docx"]
+          },
+          "proactive": [
+            {"label": "Применить правки автоматически", "request": "Примени все предложенные правки к письму Исх-45-2024", "scenario_id": "apply_proofread_fixes"},
+            {"label": "Перевести письмо на английский", "request": "Переведи письмо Исх-45-2024 на английский", "scenario_id": "translate_contract_clause"}
+          ]
+        },
+        {
+          "id": "proofread_draft",
+          "title": "✏️ Проверить служебную записку",
+          "category": "proofread",
+          "request": "Проверь текст служебной записки на опечатки и стиль",
+          "plan": {
+            "title": "Проверка служебной записки",
+            "steps": [
+              {"name": "Загрузить текст", "tool": "text_loader", "source": "СЭД ГШП", "icon": "📥"},
+              {"name": "Проверить орфографию и пунктуацию", "tool": "text_proofreader", "source": "Словарь + правила", "icon": "✏️"},
+              {"name": "Проверить стиль делового письма", "tool": "text_proofreader", "source": "Шаблон", "icon": "📝"},
+              {"name": "Сформировать отчёт", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": []
+          },
+          "proactive": []
+        },
+        {
+          "id": "apply_proofread_fixes",
+          "title": "🔧 Применить правки к письму",
+          "category": "generate",
+          "request": "Примени предложенные правки",
+          "plan": {
+            "title": "Применение правок к тексту",
+            "steps": [
+              {"name": "Загрузить исходный текст и правки", "tool": "text_loader", "source": "Отчёт проверки", "icon": "📥"},
+              {"name": "Применить правки", "tool": "text_generator", "source": "—", "icon": "✍️"},
+              {"name": "Сформировать итоговый документ", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": []
+          },
+          "proactive": []
+        },
+        {
+          "id": "translate_contract_clause",
+          "title": "🌐 Перевод документа RU→EN",
+          "category": "translate",
+          "request": "Переведи пункт 1 договора Д-2026-001 на английский",
+          "plan": {
+            "title": "Юридический перевод RU→EN",
+            "steps": [
+              {"name": "Загрузить текст", "tool": "text_loader", "source": "СЭД ГШП", "icon": "📥"},
+              {"name": "Определить тематику", "tool": "text_analyzer", "source": "—", "icon": "📝"},
+              {"name": "Сформировать глоссарий терминов", "tool": "legal_search", "source": "Корпоративный глоссарий", "icon": "📚"},
+              {"name": "Выполнить перевод с терминологией", "tool": "legal_translator", "source": "—", "icon": "🌐"},
+              {"name": "Сформировать результат", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Договор_Д-2026-001.pdf", "Корпоративный_глоссарий_RU-EN.xlsx"]
+          },
+          "proactive": [
+            {"label": "Перевести весь договор", "request": "Переведи весь договор Д-2026-001 на английский", "scenario_id": "translate_contract_clause"},
+            {"label": "Показать глоссарий терминов", "request": "Покажи глоссарий перевода", "scenario_id": "show_translation_glossary"}
+          ]
+        },
+        {
+          "id": "show_translation_glossary",
+          "title": "📖 Глоссарий перевода",
+          "category": "reference",
+          "request": "Покажи глоссарий",
+          "plan": {
+            "title": "Выгрузка глоссария",
+            "steps": [
+              {"name": "Загрузить корпоративный глоссарий", "tool": "reference_builder", "source": "Корпоративный_глоссарий_RU-EN.xlsx", "icon": "📚"},
+              {"name": "Отфильтровать использованные термины", "tool": "text_analyzer", "source": "—", "icon": "📝"},
+              {"name": "Сформировать выгрузку", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Корпоративный_глоссарий_RU-EN.xlsx"]
+          },
+          "proactive": []
+        }
+      ]
+    },
+    {
+      "id": "procurement",
+      "name": "Николай Закупщик",
+      "short_name": "Николай",
+      "role": "Закупки и подрядчики",
+      "avatar": "🛒",
+      "color": "#10b981",
+      "status": "active",
+      "description": "Веду крупные подрядные закупки шельфовых проектов: ремонт ППБУ, монтаж блок-кондукторов, технадзор, поставка труб и арматуры. Сравниваю КП, оцениваю подрядчиков, готовлю протоколы закупочной комиссии.",
+      "responsibilities": [
+        "Ведение тендеров на крупные подрядные работы (44-ФЗ / 223-ФЗ)",
+        "Сравнение коммерческих предложений подрядчиков",
+        "Оценка инженерной квалификации и благонадёжности подрядчика",
+        "Подготовка протоколов закупочной комиссии",
+        "Формирование запросов уточнений по КП"
+      ],
+      "tools": [
+        {"name": "kp_analyzer", "label": "Анализ КП", "icon": "📊"},
+        {"name": "price_comparison", "label": "Сравнение цен", "icon": "💰"},
+        {"name": "supplier_assessment", "label": "Оценка подрядчика", "icon": "🏢"},
+        {"name": "tz_matcher", "label": "Сверка с ТЗ", "icon": "📐"},
+        {"name": "kp_protocol_builder", "label": "Протокол рассмотрения", "icon": "📜"}
+      ],
+      "scenarios": [
+        {
+          "id": "compare_kp_repair_platform",
+          "title": "🛠️ Сравнить КП по ремонту ППБУ «Полярная Звезда»",
+          "category": "compare",
+          "request": "Сравни КП по закупке ЗКП-2026-045 — капитальный ремонт и антикоррозионная обработка ППБУ",
+          "clarify": {
+            "question": "Сравнить все 3 поступившие КП или только 2 с лучшими баллами ТЗ?",
+            "suggestions": ["Все поступившие КП", "Только 2 лучших"]
+          },
+          "plan": {
+            "title": "Сравнение КП по ЗКП-2026-045 (ремонт ППБУ)",
+            "steps": [
+              {"name": "Загрузить ТЗ и 3 КП", "tool": "kp_loader", "source": "Архив закупок", "icon": "📥"},
+              {"name": "Извлечь параметры из каждого КП", "tool": "kp_analyzer", "source": "КП-045/1, КП-045/2, КП-045/3", "icon": "📊"},
+              {"name": "Сверить с требованиями ТЗ", "tool": "tz_matcher", "source": "ТЗ-ЗКП-2026-045", "icon": "📐"},
+              {"name": "Сравнить цену, сроки, ресурсы, гарантии", "tool": "price_comparison", "source": "—", "icon": "💰"},
+              {"name": "Оценить подрядчиков по шельфовому опыту", "tool": "supplier_assessment", "source": "Реестр подрядчиков ГШП", "icon": "🏢"},
+              {"name": "Сформировать рекомендацию", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["ТЗ-ЗКП-2026-045.pdf", "КП-045-1_Морнефтегазсервис.pdf", "КП-045-2_СевМорМонтаж.pdf", "КП-045-3_АрктикРемонт.pdf"]
+          },
+          "proactive": [
+            {"label": "Протокол закупочной комиссии", "request": "Подготовь протокол рассмотрения КП по закупке ЗКП-2026-045", "scenario_id": "create_kp_protocol"},
+            {"label": "Передать юристу — правовая экспертиза договора с победителем", "request": "Проанализируй проект договора с победителем закупки ЗКП-2026-045", "scenario_id": "analyze_contract_risks", "target_employee_id": "lawyer"}
+          ]
+        },
+        {
+          "id": "compare_kp_technical_supervision",
+          "title": "📐 Сравнить КП на техн. надзор (ЗКП-2026-028)",
+          "category": "compare",
+          "request": "Сравни КП по закупке технического надзора строительства блок-кондуктора",
+          "plan": {
+            "title": "Сравнение КП по техн. надзору",
+            "steps": [
+              {"name": "Загрузить ТЗ и КП", "tool": "kp_loader", "source": "Архив закупок", "icon": "📥"},
+              {"name": "Анализ квалификационных документов", "tool": "kp_analyzer", "source": "КП-028/1, КП-028/2", "icon": "📊"},
+              {"name": "Сверить с требованиями ТЗ", "tool": "tz_matcher", "source": "ТЗ-ЗКП-2026-028", "icon": "📐"},
+              {"name": "Сравнить ставки и состав бригады", "tool": "price_comparison", "source": "—", "icon": "💰"},
+              {"name": "Оценить инженерные компетенции", "tool": "supplier_assessment", "source": "Реестр подрядчиков", "icon": "🏢"},
+              {"name": "Сформировать рекомендацию", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["ТЗ-ЗКП-2026-028.pdf", "КП-028-1_ШельфНадзор.pdf", "КП-028-2_ИнжЭкспертиза.pdf"]
+          },
+          "proactive": [
+            {"label": "Протокол рассмотрения КП", "request": "Подготовь протокол рассмотрения КП по закупке ЗКП-2026-028", "scenario_id": "create_kp_protocol"},
+            {"label": "Проверить благонадёжность лидера", "request": "Проверь благонадёжность подрядчика ООО \"ШельфНадзор\"", "scenario_id": "check_contractor"}
+          ]
+        },
+        {
+          "id": "compare_kp_pipes",
+          "title": "🔩 Сравнить КП на поставку труб (ЗКП-2026-032)",
+          "category": "compare",
+          "request": "Сравни КП по поставке труб для подводного трубопровода ЗКП-2026-032",
+          "plan": {
+            "title": "Сравнение КП по поставке морских труб",
+            "steps": [
+              {"name": "Загрузить ТЗ и КП", "tool": "kp_loader", "source": "Архив закупок", "icon": "📥"},
+              {"name": "Извлечь технические характеристики", "tool": "kp_analyzer", "source": "КП-032/1, КП-032/2, КП-032/3", "icon": "📊"},
+              {"name": "Сверить с требованиями API 5L", "tool": "tz_matcher", "source": "ТЗ-ЗКП-2026-032", "icon": "📐"},
+              {"name": "Сравнить цены, сроки, условия", "tool": "price_comparison", "source": "—", "icon": "💰"},
+              {"name": "Оценить поставщиков", "tool": "supplier_assessment", "source": "Реестр поставщиков", "icon": "🏢"},
+              {"name": "Сформировать рейтинг", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["ТЗ-ЗКП-2026-032.pdf"]
+          },
+          "proactive": [
+            {"label": "Запросить уточнения у поставщика-лидера", "request": "Сформируй запрос уточнения условий оплаты у лидера закупки ЗКП-2026-032", "scenario_id": "request_kp_clarification"}
+          ]
+        },
+        {
+          "id": "create_kp_protocol",
+          "title": "📜 Протокол рассмотрения КП",
+          "category": "protocol",
+          "request": "Подготовь протокол рассмотрения КП",
+          "plan": {
+            "title": "Протокол закупочной комиссии",
+            "steps": [
+              {"name": "Загрузить ТЗ и КП", "tool": "kp_loader", "source": "Архив закупок", "icon": "📥"},
+              {"name": "Сформировать таблицу сравнения", "tool": "price_comparison", "source": "—", "icon": "💰"},
+              {"name": "Сформулировать выводы по ТЗ", "tool": "tz_matcher", "source": "ТЗ", "icon": "📐"},
+              {"name": "Собрать протокол", "tool": "kp_protocol_builder", "source": "—", "icon": "📜"}
+            ],
+            "documents": []
+          },
+          "proactive": [
+            {"label": "Передать юристу для визирования", "request": "Проверь текст протокола комиссии на юридические формулировки", "scenario_id": "proofread_draft", "target_employee_id": "lawyer"}
+          ]
+        },
+        {
+          "id": "request_kp_clarification",
+          "title": "❓ Запрос уточнения условий",
+          "category": "generate",
+          "request": "Сформируй запрос уточнения условий у подрядчика",
+          "plan": {
+            "title": "Запрос уточнений по КП",
+            "steps": [
+              {"name": "Загрузить КП", "tool": "kp_loader", "source": "Архив закупок", "icon": "📥"},
+              {"name": "Выделить неясные пункты", "tool": "kp_analyzer", "source": "—", "icon": "📊"},
+              {"name": "Сформулировать вопросы подрядчику", "tool": "text_generator", "source": "Шаблон запроса", "icon": "✍️"},
+              {"name": "Сформировать письмо", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": []
+          },
+          "proactive": []
+        },
+        {
+          "id": "check_contractor",
+          "title": "🏢 Проверить подрядчика",
+          "category": "supplier",
+          "request": "Проверь благонадёжность подрядчика",
+          "plan": {
+            "title": "Оценка подрядчика",
+            "steps": [
+              {"name": "Найти подрядчика в реестре", "tool": "supplier_lookup", "source": "Реестр подрядчиков ГШП", "icon": "🔎"},
+              {"name": "Проверить опыт шельфовых работ", "tool": "supplier_assessment", "source": "История контрактов", "icon": "🏢"},
+              {"name": "Проверить судебные дела и нарушения", "tool": "supplier_assessment", "source": "Реестр нарушений", "icon": "⚠️"},
+              {"name": "Сформировать заключение", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Реестр_подрядчиков_ГШП.xlsx"]
+          },
+          "proactive": [
+            {"label": "Показать историю контрактов с подрядчиком", "request": "Покажи все контракты с ООО \"СевМорМонтаж\" за 2024-2026", "scenario_id": "list_contractor_history"},
+            {"label": "Найти альтернативных подрядчиков", "request": "Найди альтернативных подрядчиков по ремонту шельфовых платформ", "scenario_id": "find_alternative_contractors"}
+          ]
+        },
+        {
+          "id": "list_contractor_history",
+          "title": "📚 История контрактов подрядчика",
+          "category": "list",
+          "request": "Покажи историю контрактов с подрядчиком",
+          "plan": {
+            "title": "История контрактов",
+            "steps": [
+              {"name": "Найти подрядчика в реестре", "tool": "supplier_lookup", "source": "Реестр подрядчиков", "icon": "🔎"},
+              {"name": "Выгрузить контракты за период", "tool": "supplier_assessment", "source": "Архив договоров", "icon": "🏢"},
+              {"name": "Сформировать таблицу", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": []
+          },
+          "proactive": []
+        },
+        {
+          "id": "find_alternative_contractors",
+          "title": "🔎 Альтернативные подрядчики",
+          "category": "supplier",
+          "request": "Найди альтернативных подрядчиков по профилю",
+          "plan": {
+            "title": "Подбор альтернативных подрядчиков",
+            "steps": [
+              {"name": "Сформировать критерии", "tool": "text_analyzer", "source": "ТЗ", "icon": "📝"},
+              {"name": "Найти по реестру подрядчиков ГШП", "tool": "supplier_lookup", "source": "Реестр подрядчиков", "icon": "🔎"},
+              {"name": "Оценить их рейтинги и опыт", "tool": "supplier_assessment", "source": "—", "icon": "🏢"},
+              {"name": "Сформировать shortlist", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": []
+          },
+          "proactive": []
+        }
+      ]
+    },
+    {
+      "id": "assistant",
+      "name": "Ассистент ГПШ",
+      "short_name": "Ассистент",
+      "role": "Ассистент руководителя",
+      "avatar": "🤖",
+      "color": "#f59e0b",
+      "status": "active",
+      "description": "Готовлю ответы на входящие обращения, делаю ежедневные сводки по платформам, ищу информацию в корпоративной базе знаний и генерирую типовые тексты.",
+      "responsibilities": [
+        "Подготовка ответов на обращения сотрудников и граждан",
+        "Формирование ежедневных сводок по платформам",
+        "Поиск в корпоративной базе знаний",
+        "Генерация типовых текстов и справок",
+        "Сравнение сводок за разные дни"
+      ],
+      "tools": [
+        {"name": "semantic_search", "label": "Поиск по базе знаний", "icon": "🔍"},
+        {"name": "text_generator", "label": "Генерация текста", "icon": "✍️"},
+        {"name": "reference_builder", "label": "Подготовка справок", "icon": "📇"},
+        {"name": "daily_summary", "label": "Ежедневные сводки", "icon": "📅"},
+        {"name": "data_collector", "label": "Сбор данных", "icon": "📡"}
+      ],
+      "scenarios": [
+        {
+          "id": "answer_appeal_45",
+          "title": "✉️ Ответ на обращение №45-2026",
+          "category": "answer",
+          "request": "Подготовь ответ на обращение гражданина №45-2026",
+          "clarify": {
+            "question": "Нужен официальный ответ или короткая справка?",
+            "suggestions": ["Официальный ответ", "Короткая справка"]
+          },
+          "plan": {
+            "title": "Подготовка ответа на обращение №45-2026",
+            "steps": [
+              {"name": "Загрузить текст обращения", "tool": "appeal_loader", "source": "Реестр обращений ГШП", "icon": "📥"},
+              {"name": "Классифицировать обращение", "tool": "text_analyzer", "source": "Обращение_45-2026", "icon": "📝"},
+              {"name": "Найти информацию в базе знаний", "tool": "semantic_search", "source": "База знаний ГШП", "icon": "🔍"},
+              {"name": "Подобрать шаблон ответа", "tool": "reference_builder", "source": "Шаблоны официальных писем", "icon": "📇"},
+              {"name": "Сгенерировать проект ответа", "tool": "text_generator", "source": "—", "icon": "✍️"}
+            ],
+            "documents": ["Обращение_45-2026.pdf", "Шаблоны_официальных_писем.docx", "База знаний ГШП"]
+          },
+          "proactive": [
+            {"label": "Передать юристу на проверку формулировок", "request": "Проверь проект ответа на обращение №45-2026 на стиль и юридическую корректность", "scenario_id": "proofread_draft", "target_employee_id": "lawyer"},
+            {"label": "Найти похожие обращения за год", "request": "Покажи похожие обращения за 2026 год", "scenario_id": "similar_appeals_search"}
+          ]
+        },
+        {
+          "id": "answer_appeal_46",
+          "title": "✉️ Ответ на обращение №46-2026",
+          "category": "answer",
+          "request": "Подготовь ответ на обращение №46-2026",
+          "plan": {
+            "title": "Подготовка ответа на обращение №46-2026",
+            "steps": [
+              {"name": "Загрузить текст обращения", "tool": "appeal_loader", "source": "Реестр обращений ГШП", "icon": "📥"},
+              {"name": "Классифицировать", "tool": "text_analyzer", "source": "Обращение_46-2026", "icon": "📝"},
+              {"name": "Поиск в базе знаний", "tool": "semantic_search", "source": "База знаний ГШП", "icon": "🔍"},
+              {"name": "Подобрать шаблон", "tool": "reference_builder", "source": "Шаблоны", "icon": "📇"},
+              {"name": "Сгенерировать проект ответа", "tool": "text_generator", "source": "—", "icon": "✍️"}
+            ],
+            "documents": ["Обращение_46-2026.pdf"]
+          },
+          "proactive": [
+            {"label": "Передать юристу — проверить формулировки", "request": "Проверь проект ответа на обращение №46-2026", "scenario_id": "proofread_draft", "target_employee_id": "lawyer"}
+          ]
+        },
+        {
+          "id": "similar_appeals_search",
+          "title": "🔍 Похожие обращения за год",
+          "category": "search",
+          "request": "Покажи похожие обращения за год",
+          "plan": {
+            "title": "Подбор похожих обращений",
+            "steps": [
+              {"name": "Сформулировать критерии поиска", "tool": "text_analyzer", "source": "—", "icon": "📝"},
+              {"name": "Искать в реестре обращений", "tool": "semantic_search", "source": "Реестр обращений ГШП", "icon": "🔍"},
+              {"name": "Сформировать таблицу", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": []
+          },
+          "proactive": []
+        },
+        {
+          "id": "daily_summary",
+          "title": "📅 Ежедневная сводка за 21.04",
+          "category": "summary",
+          "request": "Подготовь ежедневную сводку по платформам за 21 апреля 2026",
+          "plan": {
+            "title": "Ежедневная сводка за 21.04.2026",
+            "steps": [
+              {"name": "Собрать данные по топливу", "tool": "data_collector", "source": "Топливная система", "icon": "⛽"},
+              {"name": "Собрать данные по движению судов", "tool": "data_collector", "source": "Система логистики", "icon": "🚢"},
+              {"name": "Собрать данные по работам", "tool": "data_collector", "source": "Журнал работ", "icon": "🔧"},
+              {"name": "Рассчитать ключевые показатели", "tool": "text_analyzer", "source": "—", "icon": "📊"},
+              {"name": "Сгенерировать сводку", "tool": "daily_summary", "source": "—", "icon": "📅"}
+            ],
+            "documents": ["Топливный_отчёт_21.04.2026.xlsx", "Отчёт_движения_судов_21.04.xlsx"]
+          },
+          "proactive": [
+            {"label": "Сравнить со сводкой за 20.04", "request": "Сравни показатели 21.04 и 20.04", "scenario_id": "compare_daily_summaries"},
+            {"label": "Разослать ответственным", "request": "Разошли сводку за 21.04 ответственным за направления", "scenario_id": "route_summary_to_responsible"}
+          ]
+        },
+        {
+          "id": "compare_daily_summaries",
+          "title": "📊 Сравнить сводки 20.04 и 21.04",
+          "category": "summary",
+          "request": "Сравни показатели 20.04 и 21.04",
+          "plan": {
+            "title": "Сравнение сводок",
+            "steps": [
+              {"name": "Загрузить сводку за 20.04", "tool": "data_collector", "source": "Архив сводок", "icon": "📥"},
+              {"name": "Загрузить сводку за 21.04", "tool": "data_collector", "source": "Архив сводок", "icon": "📥"},
+              {"name": "Рассчитать отклонения по KPI", "tool": "text_analyzer", "source": "—", "icon": "📊"},
+              {"name": "Сформировать сравнительную таблицу", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["Сводка_20.04.2026.xlsx", "Сводка_21.04.2026.xlsx"]
+          },
+          "proactive": [
+            {"label": "Разослать ответственным", "request": "Разошли сравнительную сводку", "scenario_id": "route_summary_to_responsible"}
+          ]
+        },
+        {
+          "id": "route_summary_to_responsible",
+          "title": "📨 Рассылка сводки",
+          "category": "route",
+          "request": "Разошли сводку ответственным",
+          "plan": {
+            "title": "Рассылка сводки",
+            "steps": [
+              {"name": "Загрузить сводку", "tool": "data_collector", "source": "Архив сводок", "icon": "📥"},
+              {"name": "Подобрать адресатов по направлениям", "tool": "reference_builder", "source": "Матрица ответственности", "icon": "📇"},
+              {"name": "Сформировать персональные письма", "tool": "text_generator", "source": "—", "icon": "✍️"},
+              {"name": "Отправить через корпоративную почту", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": []
+          },
+          "proactive": []
+        },
+        {
+          "id": "kb_search",
+          "title": "🔍 Поиск в базе знаний: работа вахтой",
+          "category": "search",
+          "request": "Найди в базе знаний информацию о порядке работы на вахте",
+          "plan": {
+            "title": "Поиск в корпоративной базе знаний",
+            "steps": [
+              {"name": "Сформировать поисковый запрос", "tool": "text_analyzer", "source": "Запрос", "icon": "📝"},
+              {"name": "Найти релевантные статьи", "tool": "semantic_search", "source": "База знаний ГШП", "icon": "🔍"},
+              {"name": "Извлечь ключевые фрагменты", "tool": "text_analyzer", "source": "—", "icon": "📝"},
+              {"name": "Сформировать сводный ответ", "tool": "reference_builder", "source": "—", "icon": "📇"}
+            ],
+            "documents": ["База знаний ГШП"]
+          },
+          "proactive": [
+            {"label": "Сделать справку для сотрудника", "request": "Сделай справку о порядке работы на вахте в формате PDF", "scenario_id": "generate_reference"},
+            {"label": "Передать делопроизводителю — шаблон заявления на вахту", "request": "Сделай шаблон заявления на вахтовую работу", "scenario_id": "generate_vacation_application", "target_employee_id": "clerk"}
+          ]
+        },
+        {
+          "id": "generate_reference",
+          "title": "📇 Справка по теме",
+          "category": "generate",
+          "request": "Подготовь справку по теме",
+          "plan": {
+            "title": "Генерация справки",
+            "steps": [
+              {"name": "Подобрать материалы", "tool": "semantic_search", "source": "База знаний ГШП", "icon": "🔍"},
+              {"name": "Подготовить структуру справки", "tool": "reference_builder", "source": "Шаблон справок", "icon": "📇"},
+              {"name": "Сгенерировать текст", "tool": "text_generator", "source": "—", "icon": "✍️"},
+              {"name": "Сформировать документ", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": []
+          },
+          "proactive": []
+        }
+      ]
+    }
+  ]
+}

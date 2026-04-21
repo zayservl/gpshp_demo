@@ -1,0 +1,32 @@
+{
+  "date": "2026-04-21",
+  "fuel": {
+    "opening_stock_t": 1240.5,
+    "received_t": 0,
+    "consumed_t": 62.3,
+    "closing_stock_t": 1178.2,
+    "critical_low": false
+  },
+  "vessels": [
+    {"name": "ППБУ «Полярная Звезда»", "status": "Работа на точке", "location": "Штокмановское ГКМ", "eta": "—"},
+    {"name": "ППБУ «Северное Сияние»", "status": "Переход", "location": "Баренцево море", "eta": "2026-04-23 08:00"},
+    {"name": "СПБУ «Арктика-3»", "status": "Планово-предупредительный ремонт", "location": "Мурманск", "eta": "2026-05-02"}
+  ],
+  "works": {
+    "completed_today": 17,
+    "in_progress": 8,
+    "delayed": 1,
+    "notable": [
+      "Завершён монтаж секции BOP на «Полярной Звезде»",
+      "Начаты пусконаладочные работы на компрессоре №3 «Северное Сияние»"
+    ]
+  },
+  "incidents": [
+    {"time": "04:12", "vessel": "ППБУ «Северное Сияние»", "type": "незначительный", "description": "Срабатывание датчика уровня топлива танка №2 — ложное, датчик заменён"}
+  ],
+  "kpi": {
+    "platform_uptime_percent": 99.2,
+    "fuel_burn_vs_plan_percent": 98.5,
+    "works_completion_vs_plan_percent": 112.0
+  }
+}

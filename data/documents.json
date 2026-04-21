@@ -1,0 +1,256 @@
+{
+  "documents": [
+    {
+      "id": "doc_app_124",
+      "title": "Заявка №124 — Поставка канцтоваров",
+      "type": "заявка",
+      "employee_id": "clerk",
+      "status": "в работе",
+      "created_at": "2026-04-18T09:15:00",
+      "source_ref": "app_124"
+    },
+    {
+      "id": "doc_app_125",
+      "title": "Заявка №125 — Ремонт НЦ-320",
+      "type": "заявка",
+      "employee_id": "clerk",
+      "status": "готово",
+      "created_at": "2026-04-19T14:20:00",
+      "source_ref": "app_125"
+    },
+    {
+      "id": "doc_app_126",
+      "title": "Заявка №126 — Услуги охраны",
+      "type": "заявка",
+      "employee_id": "clerk",
+      "status": "в работе",
+      "created_at": "2026-04-20T11:05:00",
+      "source_ref": "app_126"
+    },
+    {
+      "id": "doc_app_127",
+      "title": "Заявка №127 — Капремонт ППБУ «Полярная Звезда»",
+      "type": "заявка",
+      "employee_id": "clerk",
+      "status": "почти готово",
+      "created_at": "2026-03-25T10:00:00",
+      "source_ref": "app_127"
+    },
+    {
+      "id": "doc_app_128",
+      "title": "Заявка №128 — Поставка труб ø530 (3 200 т)",
+      "type": "заявка",
+      "employee_id": "clerk",
+      "status": "готово",
+      "created_at": "2026-03-10T09:30:00",
+      "source_ref": "app_128"
+    },
+    {
+      "id": "doc_app_129",
+      "title": "Заявка №129 — Техн. надзор блок-кондуктор БК-3",
+      "type": "заявка",
+      "employee_id": "clerk",
+      "status": "в работе",
+      "created_at": "2026-03-18T11:15:00",
+      "source_ref": "app_129"
+    },
+    {
+      "id": "doc_app_130",
+      "title": "Заявка №130 — Проектные работы «Южный-2»",
+      "type": "заявка",
+      "employee_id": "clerk",
+      "status": "в работе",
+      "created_at": "2026-04-05T15:00:00",
+      "source_ref": "app_130"
+    },
+    {
+      "id": "doc_contract_001",
+      "title": "Договор Д-2026-001 — Реконструкция цеха (ТехноСтрой)",
+      "type": "договор",
+      "employee_id": "lawyer",
+      "status": "анализ",
+      "created_at": "2026-03-14T16:30:00",
+      "source_ref": "contract_2026_001"
+    },
+    {
+      "id": "doc_contract_002",
+      "title": "Договор Д-2026-002 — Ремонт насоса НЦ-320 (ПромМаш)",
+      "type": "договор",
+      "employee_id": "lawyer",
+      "status": "готово",
+      "created_at": "2026-02-20T10:00:00",
+      "source_ref": "contract_2026_002"
+    },
+    {
+      "id": "doc_contract_003",
+      "title": "Договор Д-2026-003 — Капремонт ППБУ (Морнефтегазсервис)",
+      "type": "договор",
+      "employee_id": "lawyer",
+      "status": "проект",
+      "created_at": "2026-04-12T14:10:00",
+      "source_ref": "contract_2026_003"
+    },
+    {
+      "id": "doc_contract_004",
+      "title": "Договор Д-2026-004 — Поставка труб (ТМК)",
+      "type": "договор",
+      "employee_id": "lawyer",
+      "status": "проект",
+      "created_at": "2026-04-14T09:40:00",
+      "source_ref": "contract_2026_004"
+    },
+    {
+      "id": "doc_letter_45",
+      "title": "Письмо Исх-45-2024",
+      "type": "письмо",
+      "employee_id": "lawyer",
+      "status": "готово",
+      "created_at": "2024-04-15T12:00:00",
+      "source_ref": "letter_isx_45_2024"
+    },
+    {
+      "id": "doc_letter_118",
+      "title": "Письмо Исх-118-2026 (в Ростехнадзор)",
+      "type": "письмо",
+      "employee_id": "lawyer",
+      "status": "готово",
+      "created_at": "2026-04-10T10:15:00",
+      "source_ref": "letter_isx_118_2026"
+    },
+    {
+      "id": "doc_letter_132",
+      "title": "Письмо Исх-132-2026 (протокол разногласий ТехноСтрой)",
+      "type": "письмо",
+      "employee_id": "lawyer",
+      "status": "черновик",
+      "created_at": "2026-04-18T16:20:00",
+      "source_ref": "letter_isx_132_2026"
+    },
+    {
+      "id": "doc_tender_045",
+      "title": "ТЗ ЗКП-2026-045 — Капремонт ППБУ «Полярная Звезда»",
+      "type": "ТЗ",
+      "employee_id": "procurement",
+      "status": "активно",
+      "created_at": "2026-03-20T09:00:00",
+      "source_ref": "zkp_2026_045"
+    },
+    {
+      "id": "doc_tender_028",
+      "title": "ТЗ ЗКП-2026-028 — Технический надзор БК-3",
+      "type": "ТЗ",
+      "employee_id": "procurement",
+      "status": "активно",
+      "created_at": "2026-03-10T09:00:00",
+      "source_ref": "zkp_2026_028"
+    },
+    {
+      "id": "doc_tender_032",
+      "title": "ТЗ ЗКП-2026-032 — Поставка труб ø530 API 5L X65",
+      "type": "ТЗ",
+      "employee_id": "procurement",
+      "status": "активно",
+      "created_at": "2026-04-01T09:00:00",
+      "source_ref": "zkp_2026_032"
+    },
+    {
+      "id": "doc_kp_045_1",
+      "title": "КП-045/1 от ООО «Морнефтегазсервис»",
+      "type": "КП",
+      "employee_id": "procurement",
+      "status": "рассмотрение",
+      "created_at": "2026-04-02T10:30:00",
+      "source_ref": "kp_045_1"
+    },
+    {
+      "id": "doc_kp_045_2",
+      "title": "КП-045/2 от АО «СевМорМонтаж»",
+      "type": "КП",
+      "employee_id": "procurement",
+      "status": "рассмотрение",
+      "created_at": "2026-04-03T11:15:00",
+      "source_ref": "kp_045_2"
+    },
+    {
+      "id": "doc_kp_045_3",
+      "title": "КП-045/3 от ООО «АрктикРемонт»",
+      "type": "КП",
+      "employee_id": "procurement",
+      "status": "рассмотрение",
+      "created_at": "2026-04-05T09:20:00",
+      "source_ref": "kp_045_3"
+    },
+    {
+      "id": "doc_kp_028_1",
+      "title": "КП-028/1 от ООО «ШельфНадзор»",
+      "type": "КП",
+      "employee_id": "procurement",
+      "status": "рассмотрение",
+      "created_at": "2026-03-20T14:20:00",
+      "source_ref": "kp_028_1"
+    },
+    {
+      "id": "doc_kp_028_2",
+      "title": "КП-028/2 от ООО «ИнжЭкспертиза-Север»",
+      "type": "КП",
+      "employee_id": "procurement",
+      "status": "рассмотрение",
+      "created_at": "2026-03-22T10:50:00",
+      "source_ref": "kp_028_2"
+    },
+    {
+      "id": "doc_kp_032_1",
+      "title": "КП-032/1 от ПАО «ТМК»",
+      "type": "КП",
+      "employee_id": "procurement",
+      "status": "рассмотрение",
+      "created_at": "2026-04-10T11:00:00",
+      "source_ref": "kp_032_1"
+    },
+    {
+      "id": "doc_appeal_45",
+      "title": "Обращение №45-2026 — Условия работы вахтой",
+      "type": "обращение",
+      "employee_id": "assistant",
+      "status": "в работе",
+      "created_at": "2026-04-15T13:40:00",
+      "source_ref": "appeal_45_2026"
+    },
+    {
+      "id": "doc_appeal_46",
+      "title": "Обращение №46-2026 — О сроках ответа",
+      "type": "обращение",
+      "employee_id": "assistant",
+      "status": "в работе",
+      "created_at": "2026-04-18T11:20:00",
+      "source_ref": "appeal_46_2026"
+    },
+    {
+      "id": "doc_appeal_47",
+      "title": "Обращение №47-2026 — О статусе договора подряда",
+      "type": "обращение",
+      "employee_id": "assistant",
+      "status": "в работе",
+      "created_at": "2026-04-19T09:45:00",
+      "source_ref": "appeal_47_2026"
+    },
+    {
+      "id": "doc_daily_20_04",
+      "title": "Ежедневная сводка 20.04.2026",
+      "type": "сводка",
+      "employee_id": "assistant",
+      "status": "готово",
+      "created_at": "2026-04-20T09:30:00",
+      "source_ref": "daily_20_04"
+    },
+    {
+      "id": "doc_daily_21_04",
+      "title": "Ежедневная сводка 21.04.2026",
+      "type": "сводка",
+      "employee_id": "assistant",
+      "status": "готово",
+      "created_at": "2026-04-21T09:45:00",
+      "source_ref": "daily_ops"
+    }
+  ]
+}
