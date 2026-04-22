@@ -18,10 +18,49 @@ MessageType = Literal[
     "plan_proposal",
     "plan_approved",
     "plan_rejected",
+    "plan_paused",
+    "plan_resumed",
     "running",
     "result",
     "error"
 ]
+
+
+NodeKind = Literal["tool", "data", "handoff", "result"]
+
+
+class PlanGraphNode(BaseModel):
+    """Узел планового графа (editable, до запуска).
+
+    Отличается от WorkflowNode тем, что поддерживает пользовательские
+    правки: removed, pause_after, editable_params.
+    """
+    id: str
+    name: str
+    icon: str = "⚙️"
+    tool: Optional[str] = None
+    source: str = "—"
+    kind: NodeKind = "tool"
+    # Параметры, которые пользователь может подменить до запуска
+    editable_params: Dict[str, Any] = Field(default_factory=dict)
+    # Пользователь пометил узел как удалённый — в исполнении пропустим (skipped)
+    removed: bool = False
+    # После этого узла остановиться и дождаться resume
+    pause_after: bool = False
+    # Для handoff-узлов: кому передаём задачу
+    handoff_to_employee_id: Optional[str] = None
+    handoff_request: Optional[str] = None
+    # Опционально: конкретный сценарий у принимающего сотрудника.
+    # Если указан — при handoff следующий AI сразу начнёт этот сценарий,
+    # не полагаясь на keyword-классификатор.
+    handoff_scenario_id: Optional[str] = None
+
+
+class PlanGraphEdge(BaseModel):
+    """Ребро планового графа"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
+    source: str
+    target: str
 
 
 class ChatMessage(BaseModel):
@@ -36,15 +75,21 @@ class ChatMessage(BaseModel):
 
 
 class PlanProposal(BaseModel):
-    """Предложенный план — отправляется на согласование пользователю"""
+    """Предложенный план — отправляется на согласование пользователю.
+
+    Содержит и плоский список `steps` (для обратной совместимости с чат-блоком),
+    и графовую форму `graph_nodes`/`graph_edges` — источник истины при
+    материализации в исполнительный workflow.
+    """
     plan_id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
     scenario_id: Optional[str] = None
     title: str
     steps: List[PlanStep]
     documents: List[str] = Field(default_factory=list)
     tools: List[str] = Field(default_factory=list)
-    # Извлечённые сущности для прокидывания в инструменты
     parameters: Dict[str, Any] = Field(default_factory=dict)
+    graph_nodes: List[PlanGraphNode] = Field(default_factory=list)
+    graph_edges: List[PlanGraphEdge] = Field(default_factory=list)
 
 
 class ClarifyingQuestion(BaseModel):
@@ -75,6 +120,31 @@ class SendMessageRequest(BaseModel):
     handoff_from: Optional[str] = None
 
 
+class PlanUpdateRequest(BaseModel):
+    """Запрос: пользователь отредактировал плановый граф"""
+    graph_nodes: List[PlanGraphNode]
+    graph_edges: List[PlanGraphEdge] = Field(default_factory=list)
+
+
+class PlanTemplateSaveRequest(BaseModel):
+    """Запрос: сохранить текущий pending_plan в реестр шаблонов"""
+    name: str
+
+
+class PlanTemplate(BaseModel):
+    """Сохранённый шаблон планового графа"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
+    employee_id: str
+    name: str
+    scenario_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.now)
+    title: str
+    graph_nodes: List[PlanGraphNode]
+    graph_edges: List[PlanGraphEdge] = Field(default_factory=list)
+    parameters: Dict[str, Any] = Field(default_factory=dict)
+    documents: List[str] = Field(default_factory=list)
+
+
 class ChatSession(BaseModel):
     """Сессия чата с сотрудником (in-memory)"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -85,6 +155,9 @@ class ChatSession(BaseModel):
     pending_scenario_id: Optional[str] = None
     pending_clarify: Optional[ClarifyingQuestion] = None
     last_workflow_id: Optional[str] = None
+    # Активная пауза исполнения (после plan_paused). Внутри — event, на котором
+    # ждёт воркер; сюда не сериализуется (Field(exclude=True) через __init__).
+    paused_event_key: Optional[str] = None
     documents_created: List[Dict[str, Any]] = Field(default_factory=list)
 
 

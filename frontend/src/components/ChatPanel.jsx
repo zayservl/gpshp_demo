@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Send, Sparkles, CheckCircle2, XCircle, Loader2, Check, Play, RotateCcw
+  Send, Sparkles, CheckCircle2, XCircle, Loader2, Check, Play, RotateCcw, ArrowRight, Pause, FileText
 } from 'lucide-react';
 
 /**
  * Чат-панель с AI-сотрудником: 5 этапов диалога
  * 1. Делегирование 2. Уточнение 3. План 4. Исполнение 5. Результат + проактив
  */
-export default function ChatPanel({ employee, session, onSendMessage, onApprove, onReject, onReset, isExecuting, onOpenDocument }) {
+export default function ChatPanel({ employee, session, onSendMessage, onApprove, onReject, onResume, onReset, isExecuting, onOpenDocument, planInCenter = false }) {
   const [text, setText] = useState('');
   const scrollRef = useRef(null);
 
@@ -72,7 +72,9 @@ export default function ChatPanel({ employee, session, onSendMessage, onApprove,
               employee={employee}
               onApprove={onApprove}
               onReject={onReject}
+              onResume={onResume}
               isExecuting={isExecuting}
+              planInCenter={planInCenter}
               onProactive={(item) => onSendMessage({
                 text: item.request,
                 scenario_id: item.scenario_id || null,
@@ -139,7 +141,7 @@ export default function ChatPanel({ employee, session, onSendMessage, onApprove,
 // Bubble
 // ---------------------------------------------------------------------------
 
-function MessageBubble({ message, employee, onApprove, onReject, isExecuting, onProactive, onClarifySuggest, onOpenDocument }) {
+function MessageBubble({ message, employee, onApprove, onReject, onResume, isExecuting, planInCenter, onProactive, onClarifySuggest, onOpenDocument }) {
   const isUser = message.author === 'user';
   const common = "rounded-2xl px-3.5 py-2.5 text-sm max-w-[95%]";
 
@@ -210,6 +212,13 @@ function MessageBubble({ message, employee, onApprove, onReject, isExecuting, on
             onApprove={onApprove}
             onReject={onReject}
             disabled={isExecuting}
+            compact={planInCenter}
+          />
+        )}
+        {message.type === 'plan_paused' && (
+          <PausedBlock
+            payload={message.payload}
+            onResume={onResume}
           />
         )}
         {message.type === 'result' && (
@@ -242,8 +251,63 @@ function ClarifyBlock({ payload, onPick }) {
   );
 }
 
-function PlanBlock({ payload, color, onApprove, onReject, disabled }) {
+function PlanBlock({ payload, color, onApprove, onReject, disabled, compact }) {
   if (!payload) return null;
+
+  // Компактный вид: когда полноценный план открыт в центральной панели —
+  // чат-бабл даёт только краткий статус и дубликат кнопок approve/reject.
+  if (compact) {
+    const nodes = payload.graph_nodes || [];
+    const activeSteps = nodes.filter(n => n.kind === 'tool' && !n.removed).length
+                        || payload.steps?.length || 0;
+    const activeHandoff = nodes.some(n => n.kind === 'handoff' && !n.removed);
+    const pausesCount = nodes.filter(n => !n.removed && n.pause_after).length;
+
+    return (
+      <div className="rounded-xl border border-amber-400/25 bg-amber-500/[0.04] overflow-hidden">
+        <div className="px-3 py-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-white min-w-0">
+            <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color }} />
+            <span className="truncate">План: {payload.title}</span>
+          </div>
+          <div className="text-[10px] text-amber-200/80 whitespace-nowrap flex items-center gap-1">
+            Открыт в центре <ArrowRight className="w-3 h-3" />
+          </div>
+        </div>
+        <div className="px-3 pb-2 text-[11px] text-white/60 flex flex-wrap gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10">{activeSteps} шагов</span>
+          {pausesCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300">
+              {pausesCount} пауз
+            </span>
+          )}
+          {activeHandoff && (
+            <span className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300">
+              handoff
+            </span>
+          )}
+        </div>
+        <div className="px-3 py-2 border-t border-white/10 bg-black/20 flex items-center gap-2">
+          <button
+            onClick={onApprove}
+            disabled={disabled}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold disabled:opacity-40"
+          >
+            <Play className="w-3.5 h-3.5" /> Согласовать
+          </button>
+          <button
+            onClick={onReject}
+            disabled={disabled}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs disabled:opacity-40"
+          >
+            <XCircle className="w-3.5 h-3.5" /> Отклонить
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback полного плана в чате (если по каким-то причинам графа нет).
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
       <div className="px-3 py-2 border-b border-white/10 bg-white/[0.03] flex items-center justify-between">
@@ -267,18 +331,6 @@ function PlanBlock({ payload, color, onApprove, onReject, disabled }) {
           </li>
         ))}
       </ol>
-      {payload.documents?.length > 0 && (
-        <div className="px-3 pb-2">
-          <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Источники</div>
-          <div className="flex flex-wrap gap-1">
-            {payload.documents.map((d, i) => (
-              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/60">
-                {d}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
       <div className="px-3 py-2 border-t border-white/10 bg-black/20 flex items-center gap-2">
         <button
           onClick={onApprove}
@@ -293,6 +345,38 @@ function PlanBlock({ payload, color, onApprove, onReject, disabled }) {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs disabled:opacity-40"
         >
           <XCircle className="w-3.5 h-3.5" /> Отклонить
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PausedBlock({ payload, onResume }) {
+  const snapshotTitle = payload?.snapshot_title;
+  return (
+    <div className="rounded-xl border border-amber-400/35 bg-amber-500/[0.08] overflow-hidden">
+      <div className="px-3 py-2 flex items-center gap-2">
+        <Pause className="w-4 h-4 text-amber-300 shrink-0" />
+        <div className="text-[12px] text-amber-100 flex-1">
+          Остановка после шага <b>{payload?.step_index}</b>. Проверьте промежуточный результат — и продолжите, когда будете готовы.
+        </div>
+      </div>
+      {snapshotTitle && (
+        <div className="px-3 py-2 border-t border-amber-400/20 flex items-start gap-2">
+          <FileText className="w-3.5 h-3.5 text-amber-200 mt-0.5 shrink-0" />
+          <div className="text-[11px] text-amber-100/90 leading-snug">
+            Собран промежуточный артефакт:
+            <div className="text-amber-50 font-medium mt-0.5">{snapshotTitle}</div>
+            <div className="text-amber-200/70 mt-0.5">Доступен в панели «Документы» справа.</div>
+          </div>
+        </div>
+      )}
+      <div className="px-3 py-2 border-t border-amber-400/20 bg-black/20">
+        <button
+          onClick={onResume}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold"
+        >
+          <Play className="w-3.5 h-3.5" /> Продолжить
         </button>
       </div>
     </div>

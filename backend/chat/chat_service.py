@@ -18,20 +18,26 @@ from loguru import logger
 
 from backend.chat.intent import classify, extract_entities
 from backend.chat.orchestrator import plan_orchestrator
+from backend.chat.plan_templates import plan_template_registry
 from backend.chat.result_builder import build_result
 from backend.chat.session_manager import session_manager
 from backend.employees import employee_registry
 from backend.models.chat import (
-    ChatMessage, ChatSession, ClarifyingQuestion, PlanProposal,
-    SendMessageRequest, TaskResult
+    ChatMessage, ChatSession, ClarifyingQuestion, PlanGraphEdge, PlanGraphNode,
+    PlanProposal, PlanTemplate, SendMessageRequest, TaskResult
 )
-from backend.models.employee import Employee, PlanStep, Scenario
+from backend.models.employee import Employee, PlanStep, ProactiveSuggestion, Scenario
 from backend.services.llm_service import llm_service
 from backend.websocket.manager import ws_manager
 
 
 class ChatService:
     """Фасад диалога с сотрудником"""
+
+    def __init__(self) -> None:
+        # Активные события паузы исполнения. Ключ — session.id.
+        # Значение — asyncio.Event, который воркер ждёт перед продолжением.
+        self._pause_events: Dict[str, asyncio.Event] = {}
 
     # ------------------ Публичный API ------------------
 
@@ -168,11 +174,15 @@ class ChatService:
         plan = session.pending_plan
         scenario = next(s for s in employee.scenarios if s.id == session.pending_scenario_id)
 
+        # Материализуем граф в исполнительный план: пропускаем removed-узлы,
+        # собираем точки паузы и активный handoff (не-removed handoff-узел).
+        materialized, pause_after_steps, handoff = self._materialize_plan(plan)
+
         confirm_msg = ChatMessage(
             type="plan_approved",
             author="user",
             text="Подтверждаю план",
-            payload={"plan_id": plan.plan_id}
+            payload={"plan_id": materialized.plan_id}
         )
         session.messages.append(confirm_msg)
         await self._broadcast_chat(session, confirm_msg)
@@ -180,18 +190,108 @@ class ChatService:
         running_msg = ChatMessage(
             type="running",
             author="assistant",
-            text=f"Приступаю к выполнению: {plan.title}",
-            payload={"plan_id": plan.plan_id}
+            text=f"Приступаю к выполнению: {materialized.title}",
+            payload={"plan_id": materialized.plan_id}
         )
         session.messages.append(running_msg)
         await self._broadcast_chat(session, running_msg)
 
-        # Исполняем план. Делаем в background, чтобы HTTP-запрос вернулся сразу,
-        # а события шли через WebSocket.
-        plan_to_run = plan
         session.pending_plan = None
-        asyncio.create_task(self._run_and_finish(session, employee, scenario, plan_to_run))
+        asyncio.create_task(self._run_and_finish(
+            session, employee, scenario, materialized,
+            pause_after_steps=pause_after_steps,
+            handoff=handoff,
+        ))
 
+        return session
+
+    async def update_plan(self, employee_id: str,
+                           graph_nodes: List[PlanGraphNode],
+                           graph_edges: List[PlanGraphEdge]) -> ChatSession:
+        """Пользователь отредактировал плановый граф. Обновляем pending_plan."""
+        session = session_manager.get_or_create(employee_id)
+        if not session.pending_plan:
+            raise ValueError("Нет плана, ожидающего редактирования")
+        session.pending_plan.graph_nodes = graph_nodes
+        session.pending_plan.graph_edges = graph_edges
+        # Синхронизируем параметры: editable_params с графа перетирают parameters
+        # (ими будет пользоваться orchestrator при вызове инструментов).
+        for n in graph_nodes:
+            if n.removed:
+                continue
+            for k, v in (n.editable_params or {}).items():
+                session.pending_plan.parameters[k] = v
+        return session
+
+    async def resume_plan(self, employee_id: str) -> ChatSession:
+        """Снимаем паузу: сигналим событию, которое ждёт воркер."""
+        session = session_manager.get_or_create(employee_id)
+        ev = self._pause_events.get(session.id)
+        if ev and not ev.is_set():
+            ev.set()
+            resumed = ChatMessage(
+                type="plan_resumed",
+                author="user",
+                text="Продолжить выполнение",
+            )
+            session.messages.append(resumed)
+            await self._broadcast_chat(session, resumed)
+        return session
+
+    async def save_template(self, employee_id: str, name: str) -> PlanTemplate:
+        session = session_manager.get_or_create(employee_id)
+        if not session.pending_plan:
+            raise ValueError("Нет плана для сохранения")
+        p = session.pending_plan
+        tpl = PlanTemplate(
+            employee_id=employee_id,
+            name=name.strip() or "Без названия",
+            scenario_id=p.scenario_id,
+            title=p.title,
+            graph_nodes=list(p.graph_nodes),
+            graph_edges=list(p.graph_edges),
+            parameters=dict(p.parameters),
+            documents=list(p.documents),
+        )
+        return plan_template_registry.save(tpl)
+
+    def list_templates(self, employee_id: str) -> List[PlanTemplate]:
+        return plan_template_registry.list_for(employee_id)
+
+    async def apply_template(self, employee_id: str, template_id: str) -> ChatSession:
+        session = session_manager.get_or_create(employee_id)
+        tpl = plan_template_registry.get(employee_id, template_id)
+        if not tpl:
+            raise ValueError("Шаблон не найден")
+
+        # Собираем steps из tool-узлов шаблона (handoff-узлы не попадают в steps,
+        # но остаются в graph_nodes как опциональные).
+        steps = [
+            PlanStep(name=n.name, tool=n.tool or "", source=n.source, icon=n.icon)
+            for n in tpl.graph_nodes
+            if n.kind == "tool" and n.tool
+        ]
+        proposal = PlanProposal(
+            scenario_id=tpl.scenario_id,
+            title=tpl.title,
+            steps=steps,
+            documents=list(tpl.documents),
+            tools=sorted({s.tool for s in steps if s.tool}),
+            parameters=dict(tpl.parameters),
+            graph_nodes=list(tpl.graph_nodes),
+            graph_edges=list(tpl.graph_edges),
+        )
+        session.pending_plan = proposal
+        session.pending_scenario_id = tpl.scenario_id
+
+        msg = ChatMessage(
+            type="plan_proposal",
+            author="assistant",
+            text=f"Подставил шаблон «{tpl.name}»: {tpl.title}. Проверьте и запустите.",
+            payload=proposal.model_dump()
+        )
+        session.messages.append(msg)
+        await self._broadcast_chat(session, msg)
         return session
 
     async def reject_plan(self, employee_id: str) -> ChatSession:
@@ -358,6 +458,15 @@ class ChatService:
             params.setdefault("day_a", "20.04.2026")
             params.setdefault("day_b", "21.04.2026")
 
+        # --- Юр. проверка КП (handoff от закупщика) ---
+        if sid == "check_kp_legal_risks":
+            # tender_id мог прийти в любом регистре/разделителе (zkp_2026_028)
+            tid = params.get("tender_id")
+            if tid:
+                params["tender_id"] = tid.lower().replace("-", "_")
+            else:
+                params.setdefault("tender_id", "zkp_2026_028")
+
         # --- Заголовок плана ---
         title = scenario.plan.title
         if "application_number" in params and sid.startswith("check_application_"):
@@ -367,6 +476,8 @@ class ChatService:
         elif "appeal_number" in params and sid.startswith("answer_appeal_"):
             title = f"Подготовка ответа на обращение №{params['appeal_number']}"
 
+        graph_nodes, graph_edges = self._build_plan_graph(scenario, steps, params)
+
         proposal = PlanProposal(
             scenario_id=scenario.id,
             title=title,
@@ -374,17 +485,325 @@ class ChatService:
             documents=list(scenario.plan.documents),
             tools=sorted({s.tool for s in steps}),
             parameters=params,
+            graph_nodes=graph_nodes,
+            graph_edges=graph_edges,
         )
         return proposal
 
+    def _build_plan_graph(self, scenario: Scenario, steps: List[PlanStep],
+                           params: Dict[str, Any]) -> tuple[List[PlanGraphNode], List[PlanGraphEdge]]:
+        """Сборка планового графа из плоских шагов сценария.
+
+        - Линейная цепочка step-0 -> step-1 -> ...
+        - На первый узел-инструмент подвешиваем editable_params (ключи, релевантные
+          сценарию) — UI будет править именно его.
+        - Опциональный handoff-узел в конце, по умолчанию removed=True.
+        """
+        nodes: List[PlanGraphNode] = []
+        editable_keys = self._editable_param_keys(scenario.id)
+        first_tool_editable = {k: params[k] for k in editable_keys if k in params}
+
+        for i, step in enumerate(steps):
+            node = PlanGraphNode(
+                id=f"step-{i}",
+                name=step.name,
+                icon=step.icon,
+                tool=step.tool,
+                source=step.source,
+                kind="tool",
+                editable_params=first_tool_editable if i == 0 else {},
+            )
+            nodes.append(node)
+
+        edges: List[PlanGraphEdge] = []
+        for i in range(len(nodes) - 1):
+            edges.append(PlanGraphEdge(
+                id=f"e-{i}-{i+1}",
+                source=nodes[i].id,
+                target=nodes[i + 1].id,
+            ))
+
+        handoff = self._default_handoff(scenario.id, params)
+        if handoff and nodes:
+            target_id, request_tpl, label, handoff_sid = handoff
+            hand_node = PlanGraphNode(
+                id="handoff-next",
+                name=label,
+                icon="🤝",
+                kind="handoff",
+                editable_params={},
+                removed=True,
+                handoff_to_employee_id=target_id,
+                handoff_request=request_tpl,
+                handoff_scenario_id=handoff_sid,
+                source=f"Передача: {target_id}",
+            )
+            nodes.append(hand_node)
+            edges.append(PlanGraphEdge(
+                id=f"e-{len(nodes) - 2}-handoff",
+                source=nodes[-2].id,
+                target=hand_node.id,
+            ))
+
+        return nodes, edges
+
+    _EDITABLE_PARAM_KEYS: Dict[str, List[str]] = {
+        # По сценарию — список ключей `params`, которые имеют смысл редактировать
+        "check_application_124": ["application_number"],
+        "check_application_125": ["application_number"],
+        "check_application_127": ["application_number"],
+        "list_applications_by_period": ["period", "filter_type"],
+        "route_application_approval": ["application_number"],
+        "send_issues_to_initiator": ["application_number"],
+        "check_approval_status": ["application_number"],
+        "analyze_contract_risks": ["contract_number"],
+        "analyze_contract_repair": ["contract_number"],
+        "translate_contract_clause": ["contract_number"],
+        "prepare_disagreement_protocol": ["contract_number"],
+        "proofread_letter": ["letter_number"],
+        "apply_proofread_fixes": ["letter_number"],
+        "check_supplier": ["supplier"],
+        "check_contractor": ["supplier"],
+        "compare_kp_repair_platform": ["tender_id"],
+        "compare_kp_technical_supervision": ["tender_id"],
+        "compare_kp_pipes": ["tender_id"],
+        "create_kp_protocol": ["tender_id"],
+        "request_kp_clarification": ["tender_id"],
+        "check_kp_legal_risks": ["tender_id"],
+        "compare_daily_summaries": ["day_a", "day_b"],
+    }
+
+    def _editable_param_keys(self, scenario_id: str) -> List[str]:
+        keys = self._EDITABLE_PARAM_KEYS.get(scenario_id, [])
+        if keys:
+            return keys
+        # Фоллбек: если сценарий неизвестен — попадают самые частые ключи
+        return ["application_number", "contract_number", "tender_id",
+                "supplier", "letter_number", "appeal_number", "period"]
+
+    def _default_handoff(self, scenario_id: str,
+                          params: Dict[str, Any]) -> Optional[tuple[str, str, str, Optional[str]]]:
+        """Возвращает (target_employee_id, request_template, label, target_scenario_id)
+        или None. target_scenario_id — опционально: какой сценарий у принимающего
+        запустить сразу, минуя keyword-классификатор.
+        """
+        sid = scenario_id
+        if sid.startswith("compare_kp_") or sid == "create_kp_protocol":
+            tender = params.get("tender_id", "")
+            tail = f" по тендеру {tender}" if tender else ""
+            return (
+                "lawyer",
+                f"Проверь юридические риски в выбранном КП{tail} перед подписанием.",
+                "Передать юристу на юр. проверку",
+                "check_kp_legal_risks",
+            )
+        if sid.startswith("check_application_"):
+            appno = params.get("application_number", "")
+            tail = f" №{appno}" if appno else ""
+            return (
+                "lawyer",
+                f"Проверь договорные условия в заявке{tail}.",
+                "Передать юристу на проверку условий",
+                None,
+            )
+        if sid.startswith("answer_appeal_"):
+            appeal = params.get("appeal_number", "")
+            tail = f" №{appeal}" if appeal else ""
+            return (
+                "lawyer",
+                f"Вычитай формулировки проекта ответа на обращение{tail}.",
+                "Передать юристу на вычитку",
+                "proofread_draft",
+            )
+        if sid == "analyze_contract_risks":
+            return (
+                "procurement",
+                "Подбери альтернативных подрядчиков с учётом найденных рисков.",
+                "Передать закупщику",
+                "find_alternative_contractors",
+            )
+        if sid == "check_kp_legal_risks":
+            return (
+                "procurement",
+                "Подбери альтернативных подрядчиков с учётом выявленных юр. рисков.",
+                "Вернуть закупщику с замечаниями",
+                "find_alternative_contractors",
+            )
+        return None
+
+    def _materialize_plan(self, plan: PlanProposal) -> tuple[
+            PlanProposal, set[int], Optional[PlanGraphNode]]:
+        """Превращаем плановый граф (с правками пользователя) в исполнительный план.
+
+        - Пропускаем узлы с `removed=True` — в steps они не попадают.
+        - Собираем set индексов шагов (1-based), после которых нужна пауза.
+        - Из editable_params всех активных узлов мёржим в parameters (на случай,
+          если update_plan не был вызван).
+        - Возвращаем активный handoff-узел (не-removed kind=handoff) или None.
+        """
+        # Если граф пуст — старое поведение: используем плоские steps.
+        if not plan.graph_nodes:
+            return plan, set(), None
+
+        active_tool_nodes: List[PlanGraphNode] = []
+        handoff_active: Optional[PlanGraphNode] = None
+        pause_after_steps: set[int] = set()
+        params = dict(plan.parameters)
+
+        for node in plan.graph_nodes:
+            if node.removed:
+                continue
+            for k, v in (node.editable_params or {}).items():
+                params[k] = v
+            if node.kind == "handoff":
+                # Предполагаем один handoff-узел в конце — на всякий случай,
+                # берём последний активный.
+                handoff_active = node
+            elif node.kind == "tool" and node.tool:
+                active_tool_nodes.append(node)
+                if node.pause_after:
+                    # Индекс 1-based = порядковый номер среди активных tool-узлов.
+                    pause_after_steps.add(len(active_tool_nodes))
+
+        new_steps = [
+            PlanStep(name=n.name, tool=n.tool or "", source=n.source, icon=n.icon)
+            for n in active_tool_nodes
+        ]
+        materialized = PlanProposal(
+            plan_id=plan.plan_id,
+            scenario_id=plan.scenario_id,
+            title=plan.title,
+            steps=new_steps,
+            documents=list(plan.documents),
+            tools=sorted({s.tool for s in new_steps if s.tool}),
+            parameters=params,
+            graph_nodes=[],
+            graph_edges=[],
+        )
+        return materialized, pause_after_steps, handoff_active
+
+    def _build_pause_snapshot(self, plan: PlanProposal, session: ChatSession,
+                                employee: Employee, step_index: int,
+                                total_steps: int) -> Dict[str, Any]:
+        """Собрать документ-снимок того, что уже сделано в рамках плана.
+
+        Документ появляется в панели «Документы» сразу после паузы —
+        это делает прототип «живым»: пользователь видит осязаемый артефакт,
+        а не только чат.
+        """
+        from uuid import uuid4
+        done_steps = plan.steps[:step_index]
+        params = plan.parameters or {}
+
+        # Берём короткий контекст: что именно обрабатываем
+        context_bits: List[str] = []
+        if params.get("contract_number"):
+            context_bits.append(f"договор {params['contract_number']}")
+        if params.get("application_number"):
+            context_bits.append(f"заявка №{params['application_number']}")
+        if params.get("tender_id"):
+            context_bits.append(f"тендер {params['tender_id']}")
+        if params.get("supplier"):
+            context_bits.append(f"подрядчик «{params['supplier']}»")
+        if params.get("letter_number"):
+            context_bits.append(f"письмо {params['letter_number']}")
+        if params.get("appeal_number"):
+            context_bits.append(f"обращение №{params['appeal_number']}")
+        context_line = ", ".join(context_bits) or "—"
+
+        doc = {
+            "id": f"doc_ai_{uuid4().hex[:8]}",
+            "title": f"Промежуточный отчёт · {plan.title} (шаги 1–{step_index})",
+            "type": "промежуточный отчёт",
+            "employee_id": employee.id,
+            "status": "пауза",
+            "created_at": "только что",
+            "source_ref": plan.plan_id,
+            "generated": True,
+            "preview": {
+                "kind": "pause_snapshot",
+                "plan_title": plan.title,
+                "context": context_line,
+                "completed_steps": [
+                    {"name": s.name, "tool": s.tool, "source": s.source, "icon": s.icon}
+                    for s in done_steps
+                ],
+                "next_steps": [
+                    {"name": s.name, "tool": s.tool, "icon": s.icon}
+                    for s in plan.steps[step_index:]
+                ],
+                "progress": f"{step_index}/{total_steps}",
+            },
+        }
+        # Регистрируем в datastore, чтобы документ был доступен в общем списке.
+        try:
+            from backend.data_access import datastore
+            datastore.add_artifact(doc)
+        except Exception:  # pragma: no cover
+            pass
+        return doc
+
     async def _run_and_finish(self, session: ChatSession, employee: Employee,
-                               scenario: Scenario, plan: PlanProposal) -> None:
+                               scenario: Scenario, plan: PlanProposal,
+                               pause_after_steps: Optional[set[int]] = None,
+                               handoff: Optional[PlanGraphNode] = None) -> None:
         started = time.time()
         user_text = ""
         for m in reversed(session.messages):
             if m.type == "user":
                 user_text = m.text
                 break
+
+        pauses = pause_after_steps or set()
+
+        async def on_pause(step_index: int) -> None:
+            """Вызывается оркестратором после указанных шагов. Ждёт resume.
+
+            Одновременно создаём промежуточный документ-снимок, чтобы
+            пользователь видел осязаемый артефакт ещё до окончательного
+            результата.
+            """
+            # Снимок промежуточного состояния — докидываем в «Документы».
+            try:
+                total_steps = len(plan.steps)
+                snapshot = self._build_pause_snapshot(plan, session, employee, step_index, total_steps)
+                session.documents_created.append(snapshot)
+                await ws_manager.send_document_created(
+                    session.last_workflow_id or "",
+                    document_type=snapshot.get("type", "промежуточный отчёт"),
+                    document_id=snapshot.get("id", ""),
+                    document_data=snapshot,
+                )
+            except Exception as snap_err:  # pragma: no cover
+                logger.warning(f"Не удалось собрать промежуточный снимок: {snap_err}")
+                snapshot = None
+
+            event = asyncio.Event()
+            self._pause_events[session.id] = event
+            paused_msg = ChatMessage(
+                type="plan_paused",
+                author="assistant",
+                text=(
+                    f"Остановился после шага {step_index}. "
+                    f"Собрал промежуточный отчёт «{snapshot['title']}» — "
+                    "посмотрите в панели «Документы» и нажмите «Продолжить»."
+                    if snapshot
+                    else f"Остановился после шага {step_index}. Проверьте промежуточный результат и нажмите «Продолжить»."
+                ),
+                payload={
+                    "plan_id": plan.plan_id,
+                    "step_index": step_index,
+                    "snapshot_document_id": snapshot.get("id") if snapshot else None,
+                    "snapshot_title": snapshot.get("title") if snapshot else None,
+                },
+            )
+            session.messages.append(paused_msg)
+            await self._broadcast_chat(session, paused_msg)
+            try:
+                await event.wait()
+            finally:
+                self._pause_events.pop(session.id, None)
+
         try:
             shared = await plan_orchestrator.execute(
                 plan=plan,
@@ -392,6 +811,8 @@ class ChatService:
                 employee_id=employee.id,
                 employee_color=employee.color,
                 user_text=user_text,
+                pause_after_steps=pauses,
+                on_pause=on_pause if pauses else None,
             )
         except Exception as e:
             logger.exception("Ошибка исполнения плана")
@@ -407,7 +828,16 @@ class ChatService:
         duration_ms = int((time.time() - started) * 1000)
         result: TaskResult = build_result(scenario, shared, employee.id, duration_ms)
 
-        # Фиксируем созданные документы в сессии
+        # Если пользователь включил handoff-узел — добавляем его первым в
+        # список проактивных предложений (подсвечен как handoff).
+        if handoff and handoff.handoff_to_employee_id:
+            result.proactive.insert(0, ProactiveSuggestion(
+                label=handoff.name,
+                request=handoff.handoff_request or "Продолжи работу по задаче.",
+                target_employee_id=handoff.handoff_to_employee_id,
+                scenario_id=handoff.handoff_scenario_id,
+            ))
+
         for doc in result.documents_created:
             session.documents_created.append(doc)
             await ws_manager.send_document_created(

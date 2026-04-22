@@ -226,6 +226,27 @@
       ],
       "scenarios": [
         {
+          "id": "check_kp_legal_risks",
+          "title": "⚖️ Юр. проверка КП перед подписанием",
+          "category": "check_kp",
+          "request": "Проверь юридические риски в выбранном КП перед подписанием",
+          "plan": {
+            "title": "Юридическая проверка КП по тендеру",
+            "steps": [
+              {"name": "Загрузить коммерческое предложение и тендер", "tool": "kp_loader", "source": "Реестр КП ГШП", "icon": "📥"},
+              {"name": "Структурный разбор договорных условий КП", "tool": "contract_analyzer", "source": "Выбранное КП", "icon": "📑"},
+              {"name": "Проверка условий на соответствие 44-ФЗ / 223-ФЗ", "tool": "legal_search", "source": "База нормативных актов", "icon": "📚"},
+              {"name": "Оценка юридических рисков по КП", "tool": "risk_assessment", "source": "Матрица типовых рисков", "icon": "⚠️"},
+              {"name": "Сформировать правовое заключение по КП", "tool": "report_builder", "source": "—", "icon": "📄"}
+            ],
+            "documents": ["КП подрядчиков по тендеру", "44-ФЗ и 223-ФЗ (выдержки)", "Матрица_рисков_ГШП.xlsx"]
+          },
+          "proactive": [
+            {"label": "Подготовить протокол разногласий по КП", "request": "Сформируй протокол разногласий по выбранному КП", "scenario_id": "prepare_disagreement_protocol"},
+            {"label": "Вернуть закупщику на доработку КП", "request": "Подбери альтернативных подрядчиков с учётом выявленных юр. рисков", "scenario_id": "find_alternative_contractors", "target_employee_id": "procurement"}
+          ]
+        },
+        {
           "id": "analyze_contract_risks",
           "title": "⚠️ Анализ договора Д-2026-001 на риски",
           "category": "analyze",

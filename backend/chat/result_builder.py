@@ -51,6 +51,8 @@ def build_result(scenario: Scenario, shared: Dict[str, Any], employee_id: str,
         return _result_semantic_search(scenario, shared, employee_id, duration_ms)
     if sid in ("analyze_contract_risks", "analyze_contract_repair"):
         return _result_contract_risks(scenario, shared, employee_id, duration_ms)
+    if sid == "check_kp_legal_risks":
+        return _result_kp_legal_risks(scenario, shared, employee_id, duration_ms)
     if sid in ("proofread_letter", "proofread_draft", "apply_proofread_fixes"):
         return _result_proofread(scenario, shared, employee_id, duration_ms)
     if sid in ("translate_contract_clause", "show_translation_glossary"):
@@ -171,12 +173,19 @@ def _result_semantic_search(scenario, shared, employee_id, duration_ms) -> TaskR
     hits = shared.get("search_hits", [])
     if not hits:
         summary = "В базе знаний не нашлось релевантных фрагментов. Попробуйте переформулировать запрос."
+        docs: List[Dict[str, Any]] = []
     else:
         top = hits[0]
         summary = (
             f"Нашёл **{len(hits)}** релевантных фрагмента в ЛНА и базе знаний. "
             f"Ключевая цитата: «{top['text'][:160]}…» — {top['document']}, {top['section']}."
         )
+        docs = [_document_artifact(
+            title="Подборка фрагментов ЛНА по запросу",
+            doc_type="подборка",
+            employee_id=employee_id,
+            source_ref=top.get("document", ""),
+        )]
     return TaskResult(
         scenario_id=scenario.id,
         title=scenario.plan.title,
@@ -186,6 +195,7 @@ def _result_semantic_search(scenario, shared, employee_id, duration_ms) -> TaskR
             "hits": hits
         },
         sources=[h["document"] for h in hits] or list(scenario.plan.documents),
+        documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
     )
@@ -232,12 +242,109 @@ def _result_contract_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
     )
 
 
+def _result_kp_legal_risks(scenario, shared, employee_id, duration_ms) -> TaskResult:
+    """Юр. проверка КП перед подписанием (handoff от закупщика).
+
+    Используем уже загруженные `tender` и `proposals` из `kp_loader`.
+    Риски — синтетические, но связаны с конкретными КП для убедительности.
+    """
+    tender = shared.get("tender") or {}
+    proposals = shared.get("proposals") or []
+
+    # Берём топ-1 КП как целевой для юр. проверки (сортируем по цене для стабильности).
+    target_kp = None
+    if proposals:
+        target_kp = sorted(proposals, key=lambda p: p.get("price_rub", 0))[0]
+
+    risks = [
+        {
+            "id": "r1", "severity": "high",
+            "clause": "п. 5.2 КП",
+            "title": "Несоразмерная неустойка (0,5% в сутки)",
+            "recommendation": "Снизить до 0,1% в сутки, ограничить 10% от стоимости работ (ст. 333 ГК РФ).",
+        },
+        {
+            "id": "r2", "severity": "high",
+            "clause": "п. 7 КП",
+            "title": "Отсутствует гарантийный срок на работы",
+            "recommendation": "Зафиксировать гарантию не менее 24 мес. согласно типовым условиям ГШП.",
+        },
+        {
+            "id": "r3", "severity": "medium",
+            "clause": "п. 11 КП",
+            "title": "Нет раздела «Форс-мажор»",
+            "recommendation": "Добавить типовую формулировку ГШП с перечнем обстоятельств и сроком уведомления 7 к. д.",
+        },
+        {
+            "id": "r4", "severity": "medium",
+            "clause": "Приложение № 2",
+            "title": "Отсутствует согласованный график этапов работ",
+            "recommendation": "Приложить график с вехами ≤ 30 дней для контроля приёмки по 223-ФЗ.",
+        },
+        {
+            "id": "r5", "severity": "low",
+            "clause": "п. 3.4 КП",
+            "title": "Неоднозначная валютная оговорка",
+            "recommendation": "Зафиксировать цену в рублях с фиксированным курсом ЦБ на дату подписания.",
+        },
+    ]
+    high = [r for r in risks if r["severity"] == "high"]
+    medium = [r for r in risks if r["severity"] == "medium"]
+    verdict = "high" if len(high) >= 2 else "medium"
+    verdict_label = {"high": "высокий", "medium": "средний", "low": "низкий"}[verdict]
+
+    kp_label = (target_kp or {}).get("number") or "выбранное КП"
+    supplier_label = ((target_kp or {}).get("supplier") or {}).get("name") or "—"
+    tender_label = tender.get("number") or tender.get("id") or "—"
+
+    summary = (
+        f"Юридическая проверка **{kp_label}** ({supplier_label}) по тендеру **{tender_label}** "
+        f"завершена. Выявлено рисков: {len(risks)} (высоких — {len(high)}, средних — {len(medium)}). "
+        f"Общий уровень: **{verdict_label}**. Рекомендую оформить протокол разногласий по пп. 5.2 и 7 "
+        "перед подписанием."
+    )
+
+    docs = [_document_artifact(
+        title=f"Правовое заключение по КП {kp_label} (тендер {tender_label})",
+        doc_type="заключение",
+        employee_id=employee_id,
+        source_ref=(target_kp or {}).get("id", tender.get("id", "")),
+    )]
+
+    return TaskResult(
+        scenario_id=scenario.id,
+        title=f"Юр. проверка КП · {tender_label}",
+        summary=summary,
+        artifact={
+            "kind": "kp_legal_risks",
+            "tender": {"id": tender.get("id"), "number": tender.get("number"), "title": tender.get("title")},
+            "kp": {
+                "id": (target_kp or {}).get("id"),
+                "number": kp_label,
+                "supplier": supplier_label,
+            },
+            "verdict": verdict,
+            "risks": risks,
+        },
+        sources=list(scenario.plan.documents),
+        documents_created=docs,
+        proactive=_proactive_of(scenario),
+        duration_ms=duration_ms,
+    )
+
+
 def _result_proofread(scenario, shared, employee_id, duration_ms) -> TaskResult:
     issues = shared.get("proofread_issues", [])
     summary = (
         f"Проверка письма **Исх-45-2024** завершена. Найдено замечаний: **{len(issues)}**. "
         "Все замечания с пояснениями — ниже. Можно применить правки автоматически."
     )
+    docs = [_document_artifact(
+        title="Отчёт о проверке текста · Исх-45-2024",
+        doc_type="отчёт",
+        employee_id=employee_id,
+        source_ref="Исх-45-2024",
+    )]
     return TaskResult(
         scenario_id=scenario.id,
         title="Проверка текста · Исх-45-2024",
@@ -248,6 +355,7 @@ def _result_proofread(scenario, shared, employee_id, duration_ms) -> TaskResult:
             "letter_number": "Исх-45-2024"
         },
         sources=list(scenario.plan.documents),
+        documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
     )
@@ -259,12 +367,19 @@ def _result_translate(scenario, shared, employee_id, duration_ms) -> TaskResult:
         "Перевод пункта договора выполнен с сохранением юридической терминологии. "
         "Использован корпоративный глоссарий RU-EN."
     )
+    docs = [_document_artifact(
+        title="Перевод фрагмента договора RU→EN",
+        doc_type="перевод",
+        employee_id=employee_id,
+        source_ref="Д-2026-001",
+    )]
     return TaskResult(
         scenario_id=scenario.id,
         title="Юридический перевод RU→EN",
         summary=summary,
         artifact={"kind": "translation", **tr},
         sources=list(scenario.plan.documents),
+        documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
     )
@@ -339,12 +454,19 @@ def _result_supplier(scenario, shared, employee_id, duration_ms) -> TaskResult:
         f"Специализация: {spec}. "
         f"{supplier['verdict']}"
     )
+    docs = [_document_artifact(
+        title=f"Карточка подрядчика · {supplier['name']}",
+        doc_type="карточка",
+        employee_id=employee_id,
+        source_ref=supplier.get("id", supplier["name"]),
+    )]
     return TaskResult(
         scenario_id=scenario.id,
         title=f"Оценка подрядчика · {supplier['name']}",
         summary=summary,
         artifact={"kind": "supplier_assessment", "supplier": supplier},
         sources=list(scenario.plan.documents),
+        documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
     )
@@ -484,12 +606,19 @@ def _result_list_applications(scenario, shared, employee_id, duration_ms) -> Tas
         f"Найдено заявок: **{len(rows)}** ({period}). "
         "Можно нажать на любую строку, чтобы открыть карточку заявки."
     )
+    docs = [_document_artifact(
+        title=f"Выгрузка заявок · {period}",
+        doc_type="реестр",
+        employee_id=employee_id,
+        source_ref="applications",
+    )]
     return TaskResult(
         scenario_id=scenario.id,
         title=f"Список заявок · {period}",
         summary=summary,
         artifact={"kind": "applications_list", "rows": rows},
         sources=["Реестр заявок ГШП"],
+        documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
     )
@@ -538,16 +667,26 @@ def _result_generate_doc(scenario, shared, employee_id, duration_ms, *,
 def _result_contractor_history(scenario, shared, employee_id, duration_ms) -> TaskResult:
     suppliers = datastore.get_suppliers_registry()
     top = [s for s in suppliers if s.get("contracts_count", 0) > 0]
+    total_value = sum(s.get("total_value_rub") or 0 for s in top)
+    total_contracts = sum(s.get("contracts_count") or 0 for s in top)
     summary = (
-        f"История контрактов собрана: выведено {len(top)} подрядчиков с активными контрактами. "
-        "По каждому — рейтинг, количество сделок и общий объём."
-    )
+        f"История контрактов собрана: выведено **{len(top)}** подрядчиков "
+        f"с активными контрактами. Суммарно — {total_contracts} сделок "
+        f"на {total_value:,} ₽. По каждому — рейтинг, количество сделок и общий объём."
+    ).replace(",", " ")
+    docs = [_document_artifact(
+        title=f"Реестр истории контрактов · {len(top)} подрядчиков",
+        doc_type="реестр",
+        employee_id=employee_id,
+        source_ref="suppliers_registry",
+    )]
     return TaskResult(
         scenario_id=scenario.id,
         title="История контрактов подрядчиков",
         summary=summary,
         artifact={"kind": "contractors_history", "rows": top},
         sources=["Реестр подрядчиков ГШП"],
+        documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
     )
@@ -559,12 +698,19 @@ def _result_alt_contractors(scenario, shared, employee_id, duration_ms) -> TaskR
         f"Подобран shortlist: **{len(suppliers)}** подрядчика/поставщика. "
         "Порядок — по рейтингу и объёму выполненных контрактов."
     )
+    docs = [_document_artifact(
+        title=f"Shortlist альтернативных подрядчиков ({len(suppliers)})",
+        doc_type="shortlist",
+        employee_id=employee_id,
+        source_ref="suppliers_registry",
+    )]
     return TaskResult(
         scenario_id=scenario.id,
         title="Альтернативные подрядчики",
         summary=summary,
         artifact={"kind": "alt_contractors", "rows": suppliers},
         sources=["Реестр подрядчиков ГШП"],
+        documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
     )
@@ -616,12 +762,22 @@ def _result_route_summary(scenario, shared, employee_id, duration_ms) -> TaskRes
         f"Сводка разослана {len(recipients)} ответственным по направлениям (гл. инженер, УЭШТ, БЭК). "
         "В каждом письме — персональная выжимка по KPI его направления."
     )
+    docs = [
+        _document_artifact(
+            title=f"Письмо · сводка для {r['role']} ({r['name']})",
+            doc_type="письмо",
+            employee_id=employee_id,
+            source_ref=r.get("email", ""),
+        )
+        for r in recipients
+    ]
     return TaskResult(
         scenario_id=scenario.id,
         title="Рассылка ежедневной сводки",
         summary=summary,
         artifact={"kind": "summary_dispatch", "recipients": recipients},
         sources=[],
+        documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
     )

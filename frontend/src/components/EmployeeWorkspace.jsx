@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import WorkflowGraph from './WorkflowGraph';
+import PlanGraph from './PlanGraph';
 import ChatPanel from './ChatPanel';
 import DocumentsPanel from './DocumentsPanel';
 import ToolsPanel from './ToolsPanel';
@@ -27,9 +28,63 @@ export default function EmployeeWorkspace({
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [viewDocId, setViewDocId] = useState(null);
   const [tab, setTab] = useState('documents');
+  const [templates, setTemplates] = useState([]);
+
+  // Ширина левой колонки (чат + действия) — resizable. Храним в localStorage,
+  // чтобы ширина переживала reload и переключение сотрудников.
+  const LEFT_MIN = 340;
+  const LEFT_MAX = 720;
+  const LEFT_DEFAULT = 480;
+  const [leftWidth, setLeftWidth] = useState(() => {
+    if (typeof window === 'undefined') return LEFT_DEFAULT;
+    const raw = Number(window.localStorage.getItem('aurora.leftPanelWidth'));
+    if (!Number.isFinite(raw) || raw <= 0) return LEFT_DEFAULT;
+    return Math.min(LEFT_MAX, Math.max(LEFT_MIN, raw));
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem('aurora.leftPanelWidth', String(leftWidth)); } catch {}
+  }, [leftWidth]);
 
   const executingRef = useRef(false);
   useEffect(() => { executingRef.current = isExecuting; }, [isExecuting]);
+
+  // Pointer-based drag для ручки ресайза между левой колонкой и центром.
+  const draggingRef = useRef(false);
+  const onResizeStart = useCallback((e) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    document.body.classList.add('aurora-col-resizing');
+    const onMove = (ev) => {
+      if (!draggingRef.current) return;
+      const x = ev.clientX;
+      const clamped = Math.min(LEFT_MAX, Math.max(LEFT_MIN, x));
+      setLeftWidth(clamped);
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      document.body.classList.remove('aurora-col-resizing');
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  }, []);
+
+  const onResizeDoubleClick = useCallback(() => {
+    setLeftWidth(LEFT_DEFAULT);
+  }, []);
+
+  const refreshTemplates = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/chat/${initialEmployee.id}/plan/templates`);
+      if (r.ok) {
+        const list = await r.json();
+        setTemplates(Array.isArray(list) ? list : []);
+      }
+    } catch {/* ignore */}
+  }, [initialEmployee.id]);
 
   // ---- Initial load ----
   useEffect(() => {
@@ -45,10 +100,14 @@ export default function EmployeeWorkspace({
     Promise.all([
       fetch(`/api/employees/${initialEmployee.id}`).then(r => r.json()),
       fetch(`/api/chat/${initialEmployee.id}/init`, { method: 'POST' }).then(r => r.json()),
-    ]).then(([empFull, sessionData]) => {
+      fetch(`/api/chat/${initialEmployee.id}/plan/templates`)
+        .then(r => r.ok ? r.json() : [])
+        .catch(() => []),
+    ]).then(([empFull, sessionData, tplList]) => {
       if (ignore) return;
       setEmployee(empFull);
       setSession(sessionData);
+      setTemplates(Array.isArray(tplList) ? tplList : []);
     });
 
     return () => { ignore = true; };
@@ -206,6 +265,54 @@ export default function EmployeeWorkspace({
     setSession(data);
   }, [employee.id]);
 
+  const handlePlanUpdate = useCallback(async (graphNodes, graphEdges) => {
+    // Оптимистично обновляем session.pending_plan, чтобы не было лагов.
+    setSession(prev => prev && prev.pending_plan ? {
+      ...prev,
+      pending_plan: { ...prev.pending_plan, graph_nodes: graphNodes, graph_edges: graphEdges },
+    } : prev);
+    try {
+      const r = await fetch(`/api/chat/${employee.id}/plan/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ graph_nodes: graphNodes, graph_edges: graphEdges }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setSession(data);
+      }
+    } catch {/* ignore */}
+  }, [employee.id]);
+
+  const handleResume = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/chat/${employee.id}/plan/resume`, { method: 'POST' });
+      if (r.ok) setSession(await r.json());
+    } catch {/* ignore */}
+  }, [employee.id]);
+
+  const handleSaveTemplate = useCallback(async (name) => {
+    try {
+      const r = await fetch(`/api/chat/${employee.id}/plan/template`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (r.ok) {
+        await refreshTemplates();
+      }
+    } catch {/* ignore */}
+  }, [employee.id, refreshTemplates]);
+
+  const handleLoadTemplate = useCallback(async (templateId) => {
+    try {
+      const r = await fetch(`/api/chat/${employee.id}/plan/template/${templateId}/apply`, {
+        method: 'POST',
+      });
+      if (r.ok) setSession(await r.json());
+    } catch {/* ignore */}
+  }, [employee.id]);
+
   const handleReset = useCallback(async () => {
     setWorkflow(null);
     setLogs([]);
@@ -242,27 +349,58 @@ export default function EmployeeWorkspace({
 
   return (
     <div className="flex-1 flex min-h-0">
-      <div className="w-[420px] border-r border-white/10 flex flex-col shrink-0">
+      <div
+        className="border-r border-white/10 flex flex-col shrink-0"
+        style={{ width: `${leftWidth}px` }}
+      >
         <ChatPanel
           employee={employee}
           session={session}
           onSendMessage={handleSend}
           onApprove={handleApprove}
           onReject={handleReject}
+          onResume={handleResume}
           onReset={handleReset}
           isExecuting={isExecuting}
           onOpenDocument={setViewDocId}
+          planInCenter={Boolean(session?.pending_plan?.graph_nodes?.length)}
         />
+      </div>
+
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Изменить ширину колонки чата"
+        onPointerDown={onResizeStart}
+        onDoubleClick={onResizeDoubleClick}
+        title="Потяните, чтобы изменить ширину · двойной клик — сброс"
+        className="group relative w-1.5 shrink-0 cursor-col-resize bg-transparent hover:bg-cyan-400/25 transition-colors"
+      >
+        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-white/10 group-hover:bg-cyan-400/60" />
       </div>
 
       <div className="flex-1 relative grid-pattern min-w-0">
         <ReactFlowProvider>
-          <WorkflowGraph
-            workflow={workflow}
-            employee={employee}
-            onNodeClick={setSelectedAgent}
-            emptyTitle="Граф выполнения задачи"
-          />
+          {session?.pending_plan && session.pending_plan.graph_nodes?.length > 0 ? (
+            <PlanGraph
+              pendingPlan={session.pending_plan}
+              employee={employee}
+              templates={templates}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onUpdate={handlePlanUpdate}
+              onSaveTemplate={handleSaveTemplate}
+              onLoadTemplate={handleLoadTemplate}
+              disabled={isExecuting}
+            />
+          ) : (
+            <WorkflowGraph
+              workflow={workflow}
+              employee={employee}
+              onNodeClick={setSelectedAgent}
+              emptyTitle="Граф выполнения задачи"
+            />
+          )}
         </ReactFlowProvider>
       </div>
 
