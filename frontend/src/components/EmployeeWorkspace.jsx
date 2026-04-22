@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import WorkflowGraph from './WorkflowGraph';
+import PlanGraph from './PlanGraph';
 import ChatPanel from './ChatPanel';
 import DocumentsPanel from './DocumentsPanel';
 import ToolsPanel from './ToolsPanel';
@@ -27,9 +28,20 @@ export default function EmployeeWorkspace({
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [viewDocId, setViewDocId] = useState(null);
   const [tab, setTab] = useState('documents');
+  const [templates, setTemplates] = useState([]);
 
   const executingRef = useRef(false);
   useEffect(() => { executingRef.current = isExecuting; }, [isExecuting]);
+
+  const refreshTemplates = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/chat/${initialEmployee.id}/plan/templates`);
+      if (r.ok) {
+        const list = await r.json();
+        setTemplates(Array.isArray(list) ? list : []);
+      }
+    } catch {/* ignore */}
+  }, [initialEmployee.id]);
 
   // ---- Initial load ----
   useEffect(() => {
@@ -45,10 +57,14 @@ export default function EmployeeWorkspace({
     Promise.all([
       fetch(`/api/employees/${initialEmployee.id}`).then(r => r.json()),
       fetch(`/api/chat/${initialEmployee.id}/init`, { method: 'POST' }).then(r => r.json()),
-    ]).then(([empFull, sessionData]) => {
+      fetch(`/api/chat/${initialEmployee.id}/plan/templates`)
+        .then(r => r.ok ? r.json() : [])
+        .catch(() => []),
+    ]).then(([empFull, sessionData, tplList]) => {
       if (ignore) return;
       setEmployee(empFull);
       setSession(sessionData);
+      setTemplates(Array.isArray(tplList) ? tplList : []);
     });
 
     return () => { ignore = true; };
@@ -206,6 +222,54 @@ export default function EmployeeWorkspace({
     setSession(data);
   }, [employee.id]);
 
+  const handlePlanUpdate = useCallback(async (graphNodes, graphEdges) => {
+    // Оптимистично обновляем session.pending_plan, чтобы не было лагов.
+    setSession(prev => prev && prev.pending_plan ? {
+      ...prev,
+      pending_plan: { ...prev.pending_plan, graph_nodes: graphNodes, graph_edges: graphEdges },
+    } : prev);
+    try {
+      const r = await fetch(`/api/chat/${employee.id}/plan/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ graph_nodes: graphNodes, graph_edges: graphEdges }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setSession(data);
+      }
+    } catch {/* ignore */}
+  }, [employee.id]);
+
+  const handleResume = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/chat/${employee.id}/plan/resume`, { method: 'POST' });
+      if (r.ok) setSession(await r.json());
+    } catch {/* ignore */}
+  }, [employee.id]);
+
+  const handleSaveTemplate = useCallback(async (name) => {
+    try {
+      const r = await fetch(`/api/chat/${employee.id}/plan/template`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (r.ok) {
+        await refreshTemplates();
+      }
+    } catch {/* ignore */}
+  }, [employee.id, refreshTemplates]);
+
+  const handleLoadTemplate = useCallback(async (templateId) => {
+    try {
+      const r = await fetch(`/api/chat/${employee.id}/plan/template/${templateId}/apply`, {
+        method: 'POST',
+      });
+      if (r.ok) setSession(await r.json());
+    } catch {/* ignore */}
+  }, [employee.id]);
+
   const handleReset = useCallback(async () => {
     setWorkflow(null);
     setLogs([]);
@@ -249,20 +313,36 @@ export default function EmployeeWorkspace({
           onSendMessage={handleSend}
           onApprove={handleApprove}
           onReject={handleReject}
+          onResume={handleResume}
           onReset={handleReset}
           isExecuting={isExecuting}
           onOpenDocument={setViewDocId}
+          planInCenter={Boolean(session?.pending_plan?.graph_nodes?.length)}
         />
       </div>
 
       <div className="flex-1 relative grid-pattern min-w-0">
         <ReactFlowProvider>
-          <WorkflowGraph
-            workflow={workflow}
-            employee={employee}
-            onNodeClick={setSelectedAgent}
-            emptyTitle="Граф выполнения задачи"
-          />
+          {session?.pending_plan && session.pending_plan.graph_nodes?.length > 0 ? (
+            <PlanGraph
+              pendingPlan={session.pending_plan}
+              employee={employee}
+              templates={templates}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onUpdate={handlePlanUpdate}
+              onSaveTemplate={handleSaveTemplate}
+              onLoadTemplate={handleLoadTemplate}
+              disabled={isExecuting}
+            />
+          ) : (
+            <WorkflowGraph
+              workflow={workflow}
+              employee={employee}
+              onNodeClick={setSelectedAgent}
+              emptyTitle="Граф выполнения задачи"
+            />
+          )}
         </ReactFlowProvider>
       </div>
 

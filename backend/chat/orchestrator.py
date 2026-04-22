@@ -7,7 +7,7 @@
 from __future__ import annotations
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Set
 
 from loguru import logger
 
@@ -95,8 +95,14 @@ class PlanOrchestrator:
         employee_id: str,
         employee_color: str,
         user_text: str,
+        pause_after_steps: Optional[Set[int]] = None,
+        on_pause: Optional[Callable[[int], Awaitable[None]]] = None,
     ) -> Dict[str, Any]:
-        """Исполнить план, возвращает shared-состояние (для построения результата)."""
+        """Исполнить план, возвращает shared-состояние (для построения результата).
+
+        `pause_after_steps` — 1-based индексы шагов, после которых надо вызвать
+        `on_pause(step_index)` и дождаться его завершения.
+        """
         workflow = self.build_workflow(plan, employee_color)
         session.last_workflow_id = workflow.id
 
@@ -161,6 +167,14 @@ class PlanOrchestrator:
                 workflow.status = NodeStatus.FAILED
                 await ws_manager.send_workflow_completed(workflow.id, False, {"error": str(e)})
                 raise
+
+            # Точка паузы: дождёмся сигнала от пользователя, прежде чем идти дальше.
+            if pause_after_steps and on_pause and i in pause_after_steps:
+                await ws_manager.send_log_entry(
+                    workflow.id, "INFO", "Оркестратор",
+                    f"Пауза после шага {i} — жду подтверждения пользователя"
+                )
+                await on_pause(i)
 
         # 3. Финализируем
         final = next(n for n in workflow.nodes if n.id == "node_final")

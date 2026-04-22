@@ -5,7 +5,9 @@ from fastapi import APIRouter, HTTPException
 
 from backend.chat import chat_service, session_manager
 from backend.employees import employee_registry
-from backend.models.chat import SendMessageRequest
+from backend.models.chat import (
+    PlanTemplateSaveRequest, PlanUpdateRequest, SendMessageRequest
+)
 
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -76,4 +78,45 @@ async def approve_plan(employee_id: str):
 @router.post("/{employee_id}/reject")
 async def reject_plan(employee_id: str):
     session = await chat_service.reject_plan(employee_id)
+    return _session_to_dict(session)
+
+
+@router.post("/{employee_id}/plan/update")
+async def update_plan(employee_id: str, req: PlanUpdateRequest):
+    try:
+        session = await chat_service.update_plan(
+            employee_id, req.graph_nodes, req.graph_edges
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _session_to_dict(session)
+
+
+@router.post("/{employee_id}/plan/resume")
+async def resume_plan(employee_id: str):
+    session = await chat_service.resume_plan(employee_id)
+    return _session_to_dict(session)
+
+
+@router.post("/{employee_id}/plan/template")
+async def save_plan_template(employee_id: str, req: PlanTemplateSaveRequest):
+    try:
+        tpl = await chat_service.save_template(employee_id, req.name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return tpl.model_dump()
+
+
+@router.get("/{employee_id}/plan/templates")
+async def list_plan_templates(employee_id: str):
+    templates = chat_service.list_templates(employee_id)
+    return [t.model_dump() for t in templates]
+
+
+@router.post("/{employee_id}/plan/template/{template_id}/apply")
+async def apply_plan_template(employee_id: str, template_id: str):
+    try:
+        session = await chat_service.apply_template(employee_id, template_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return _session_to_dict(session)
