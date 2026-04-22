@@ -50,6 +50,10 @@ class PlanGraphNode(BaseModel):
     # Для handoff-узлов: кому передаём задачу
     handoff_to_employee_id: Optional[str] = None
     handoff_request: Optional[str] = None
+    # Опционально: конкретный сценарий у принимающего сотрудника.
+    # Если указан — при handoff следующий AI сразу начнёт этот сценарий,
+    # не полагаясь на keyword-классификатор.
+    handoff_scenario_id: Optional[str] = None
 
 
 class PlanGraphEdge(BaseModel):

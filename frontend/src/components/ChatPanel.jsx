@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Send, Sparkles, CheckCircle2, XCircle, Loader2, Check, Play, RotateCcw, ArrowRight, Pause
+  Send, Sparkles, CheckCircle2, XCircle, Loader2, Check, Play, RotateCcw, ArrowRight, Pause, FileText
 } from 'lucide-react';
 
 /**
@@ -352,6 +352,7 @@ function PlanBlock({ payload, color, onApprove, onReject, disabled, compact }) {
 }
 
 function PausedBlock({ payload, onResume }) {
+  const snapshotTitle = payload?.snapshot_title;
   return (
     <div className="rounded-xl border border-amber-400/35 bg-amber-500/[0.08] overflow-hidden">
       <div className="px-3 py-2 flex items-center gap-2">
@@ -360,6 +361,16 @@ function PausedBlock({ payload, onResume }) {
           Остановка после шага <b>{payload?.step_index}</b>. Проверьте промежуточный результат — и продолжите, когда будете готовы.
         </div>
       </div>
+      {snapshotTitle && (
+        <div className="px-3 py-2 border-t border-amber-400/20 flex items-start gap-2">
+          <FileText className="w-3.5 h-3.5 text-amber-200 mt-0.5 shrink-0" />
+          <div className="text-[11px] text-amber-100/90 leading-snug">
+            Собран промежуточный артефакт:
+            <div className="text-amber-50 font-medium mt-0.5">{snapshotTitle}</div>
+            <div className="text-amber-200/70 mt-0.5">Доступен в панели «Документы» справа.</div>
+          </div>
+        </div>
+      )}
       <div className="px-3 py-2 border-t border-amber-400/20 bg-black/20">
         <button
           onClick={onResume}

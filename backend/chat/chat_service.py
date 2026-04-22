@@ -458,6 +458,15 @@ class ChatService:
             params.setdefault("day_a", "20.04.2026")
             params.setdefault("day_b", "21.04.2026")
 
+        # --- Юр. проверка КП (handoff от закупщика) ---
+        if sid == "check_kp_legal_risks":
+            # tender_id мог прийти в любом регистре/разделителе (zkp_2026_028)
+            tid = params.get("tender_id")
+            if tid:
+                params["tender_id"] = tid.lower().replace("-", "_")
+            else:
+                params.setdefault("tender_id", "zkp_2026_028")
+
         # --- Заголовок плана ---
         title = scenario.plan.title
         if "application_number" in params and sid.startswith("check_application_"):
@@ -516,7 +525,7 @@ class ChatService:
 
         handoff = self._default_handoff(scenario.id, params)
         if handoff and nodes:
-            target_id, request_tpl, label = handoff
+            target_id, request_tpl, label, handoff_sid = handoff
             hand_node = PlanGraphNode(
                 id="handoff-next",
                 name=label,
@@ -526,6 +535,7 @@ class ChatService:
                 removed=True,
                 handoff_to_employee_id=target_id,
                 handoff_request=request_tpl,
+                handoff_scenario_id=handoff_sid,
                 source=f"Передача: {target_id}",
             )
             nodes.append(hand_node)
@@ -559,6 +569,7 @@ class ChatService:
         "compare_kp_pipes": ["tender_id"],
         "create_kp_protocol": ["tender_id"],
         "request_kp_clarification": ["tender_id"],
+        "check_kp_legal_risks": ["tender_id"],
         "compare_daily_summaries": ["day_a", "day_b"],
     }
 
@@ -571,8 +582,11 @@ class ChatService:
                 "supplier", "letter_number", "appeal_number", "period"]
 
     def _default_handoff(self, scenario_id: str,
-                          params: Dict[str, Any]) -> Optional[tuple[str, str, str]]:
-        """Возвращает (target_employee_id, request_template, label) или None."""
+                          params: Dict[str, Any]) -> Optional[tuple[str, str, str, Optional[str]]]:
+        """Возвращает (target_employee_id, request_template, label, target_scenario_id)
+        или None. target_scenario_id — опционально: какой сценарий у принимающего
+        запустить сразу, минуя keyword-классификатор.
+        """
         sid = scenario_id
         if sid.startswith("compare_kp_") or sid == "create_kp_protocol":
             tender = params.get("tender_id", "")
@@ -581,6 +595,7 @@ class ChatService:
                 "lawyer",
                 f"Проверь юридические риски в выбранном КП{tail} перед подписанием.",
                 "Передать юристу на юр. проверку",
+                "check_kp_legal_risks",
             )
         if sid.startswith("check_application_"):
             appno = params.get("application_number", "")
@@ -589,6 +604,7 @@ class ChatService:
                 "lawyer",
                 f"Проверь договорные условия в заявке{tail}.",
                 "Передать юристу на проверку условий",
+                None,
             )
         if sid.startswith("answer_appeal_"):
             appeal = params.get("appeal_number", "")
@@ -597,12 +613,21 @@ class ChatService:
                 "lawyer",
                 f"Вычитай формулировки проекта ответа на обращение{tail}.",
                 "Передать юристу на вычитку",
+                "proofread_draft",
             )
         if sid == "analyze_contract_risks":
             return (
                 "procurement",
                 "Подбери альтернативных подрядчиков с учётом найденных рисков.",
                 "Передать закупщику",
+                "find_alternative_contractors",
+            )
+        if sid == "check_kp_legal_risks":
+            return (
+                "procurement",
+                "Подбери альтернативных подрядчиков с учётом выявленных юр. рисков.",
+                "Вернуть закупщику с замечаниями",
+                "find_alternative_contractors",
             )
         return None
 
@@ -657,6 +682,67 @@ class ChatService:
         )
         return materialized, pause_after_steps, handoff_active
 
+    def _build_pause_snapshot(self, plan: PlanProposal, session: ChatSession,
+                                employee: Employee, step_index: int,
+                                total_steps: int) -> Dict[str, Any]:
+        """Собрать документ-снимок того, что уже сделано в рамках плана.
+
+        Документ появляется в панели «Документы» сразу после паузы —
+        это делает прототип «живым»: пользователь видит осязаемый артефакт,
+        а не только чат.
+        """
+        from uuid import uuid4
+        done_steps = plan.steps[:step_index]
+        params = plan.parameters or {}
+
+        # Берём короткий контекст: что именно обрабатываем
+        context_bits: List[str] = []
+        if params.get("contract_number"):
+            context_bits.append(f"договор {params['contract_number']}")
+        if params.get("application_number"):
+            context_bits.append(f"заявка №{params['application_number']}")
+        if params.get("tender_id"):
+            context_bits.append(f"тендер {params['tender_id']}")
+        if params.get("supplier"):
+            context_bits.append(f"подрядчик «{params['supplier']}»")
+        if params.get("letter_number"):
+            context_bits.append(f"письмо {params['letter_number']}")
+        if params.get("appeal_number"):
+            context_bits.append(f"обращение №{params['appeal_number']}")
+        context_line = ", ".join(context_bits) or "—"
+
+        doc = {
+            "id": f"doc_ai_{uuid4().hex[:8]}",
+            "title": f"Промежуточный отчёт · {plan.title} (шаги 1–{step_index})",
+            "type": "промежуточный отчёт",
+            "employee_id": employee.id,
+            "status": "пауза",
+            "created_at": "только что",
+            "source_ref": plan.plan_id,
+            "generated": True,
+            "preview": {
+                "kind": "pause_snapshot",
+                "plan_title": plan.title,
+                "context": context_line,
+                "completed_steps": [
+                    {"name": s.name, "tool": s.tool, "source": s.source, "icon": s.icon}
+                    for s in done_steps
+                ],
+                "next_steps": [
+                    {"name": s.name, "tool": s.tool, "icon": s.icon}
+                    for s in plan.steps[step_index:]
+                ],
+                "progress": f"{step_index}/{total_steps}",
+            },
+        }
+        # Регистрируем в datastore, чтобы документ был доступен в общем списке.
+        try:
+            from backend.data_access import datastore
+            datastore.add_artifact(doc)
+        except Exception:  # pragma: no cover
+            pass
+        return doc
+
     async def _run_and_finish(self, session: ChatSession, employee: Employee,
                                scenario: Scenario, plan: PlanProposal,
                                pause_after_steps: Optional[set[int]] = None,
@@ -671,14 +757,45 @@ class ChatService:
         pauses = pause_after_steps or set()
 
         async def on_pause(step_index: int) -> None:
-            """Вызывается оркестратором после указанных шагов. Ждёт resume."""
+            """Вызывается оркестратором после указанных шагов. Ждёт resume.
+
+            Одновременно создаём промежуточный документ-снимок, чтобы
+            пользователь видел осязаемый артефакт ещё до окончательного
+            результата.
+            """
+            # Снимок промежуточного состояния — докидываем в «Документы».
+            try:
+                total_steps = len(plan.steps)
+                snapshot = self._build_pause_snapshot(plan, session, employee, step_index, total_steps)
+                session.documents_created.append(snapshot)
+                await ws_manager.send_document_created(
+                    session.last_workflow_id or "",
+                    document_type=snapshot.get("type", "промежуточный отчёт"),
+                    document_id=snapshot.get("id", ""),
+                    document_data=snapshot,
+                )
+            except Exception as snap_err:  # pragma: no cover
+                logger.warning(f"Не удалось собрать промежуточный снимок: {snap_err}")
+                snapshot = None
+
             event = asyncio.Event()
             self._pause_events[session.id] = event
             paused_msg = ChatMessage(
                 type="plan_paused",
                 author="assistant",
-                text=f"Остановился после шага {step_index}. Проверьте промежуточный результат и нажмите «Продолжить».",
-                payload={"plan_id": plan.plan_id, "step_index": step_index},
+                text=(
+                    f"Остановился после шага {step_index}. "
+                    f"Собрал промежуточный отчёт «{snapshot['title']}» — "
+                    "посмотрите в панели «Документы» и нажмите «Продолжить»."
+                    if snapshot
+                    else f"Остановился после шага {step_index}. Проверьте промежуточный результат и нажмите «Продолжить»."
+                ),
+                payload={
+                    "plan_id": plan.plan_id,
+                    "step_index": step_index,
+                    "snapshot_document_id": snapshot.get("id") if snapshot else None,
+                    "snapshot_title": snapshot.get("title") if snapshot else None,
+                },
             )
             session.messages.append(paused_msg)
             await self._broadcast_chat(session, paused_msg)
@@ -718,6 +835,7 @@ class ChatService:
                 label=handoff.name,
                 request=handoff.handoff_request or "Продолжи работу по задаче.",
                 target_employee_id=handoff.handoff_to_employee_id,
+                scenario_id=handoff.handoff_scenario_id,
             ))
 
         for doc in result.documents_created:

@@ -26,6 +26,12 @@ CATEGORY_KEYWORDS: Dict[str, List[str]] = {
     "search": ["найд", "поищ", "поиск", "лна", "нормативн", "база знан", "узнай", "вахта", "отпуск"],
     # lawyer
     "analyze": ["анализ", "риск", "проверь договор", "проанализируй", "проверка договора"],
+    # Юр. проверка КП перед подписанием — отдельная категория,
+    # триггерится handoff'ом от закупщика ("Проверь юридические риски в КП…").
+    "check_kp": [
+        "юридическ", "юр.", "риск", "кп", "коммерческ", "предложени",
+        "перед подписанием", "тендер",
+    ],
     "proofread": ["опечатк", "орфогр", "стиль", "ошибк", "проверь письмо", "проверь текст"],
     "translate": ["перевед", "перевод", "английск", "russian to english", "ru->en"],
     # procurement
@@ -45,7 +51,11 @@ NUMBER_PATTERNS = [
     (re.compile(r"(Исх-\d+-\d+)", re.I), "letter_number"),
     (re.compile(r"обращени[а-я]*\s*(?:№)?\s*(\d+-\d+)", re.I), "appeal_number"),
     (re.compile(r"(КП-\d+)", re.I), "proposal_number"),
+    # Идентификатор тендера: "ЗКП-2026-028" / "zkp_2026_028" / "zkp-2026-028"
     (re.compile(r"(ЗКП-\d{4}-\d+)", re.I), "tender_number"),
+    (re.compile(r"(zkp[_\-]\d{4}[_\-]\d+)", re.I), "tender_id"),
+    (re.compile(r"тендер[ауеом]*\s+(zkp[_\-]\d{4}[_\-]\d+)", re.I), "tender_id"),
+    (re.compile(r"тендер[ауеом]*\s+(ЗКП-\d{4}-\d+)", re.I), "tender_id"),
 ]
 
 
@@ -100,6 +110,14 @@ def classify(employee: Employee, text: str) -> Optional[IntentMatch]:
             score += 8
         if scenario.category == "compare" and ("ноутбук" in text.lower() or "кп" in text.lower()):
             score += 4
+        # Юр. проверка КП: ключевой сигнал — "юрид" + ("кп" или tender_id)
+        if scenario.category == "check_kp":
+            lower = text.lower()
+            if "юрид" in lower and ("кп" in lower or "tender_id" in extracted
+                                     or "tender_number" in extracted):
+                score += 8
+            if "tender_id" in extracted or "tender_number" in extracted:
+                score += 4
 
         if score > best_score:
             best_score = score
