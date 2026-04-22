@@ -144,3 +144,14 @@ body {
     linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
 }
+
+/* Пока пользователь тянет ресайзер колонки — блокируем выделение и фиксируем курсор.
+   Класс выставляется из EmployeeWorkspace на время drag-жеста. */
+body.aurora-col-resizing {
+  cursor: col-resize !important;
+  user-select: none;
+}
+body.aurora-col-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
