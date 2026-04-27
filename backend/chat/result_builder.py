@@ -6,7 +6,7 @@
 человеко-читаемый summary + artifact + proactive-предложения.
 """
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from backend.data_access import datastore
 from backend.models.chat import TaskResult
@@ -20,8 +20,54 @@ from backend.models.employee import ProactiveSuggestion, Scenario
 def _proactive_of(scenario: Scenario) -> List[ProactiveSuggestion]:
     return list(scenario.proactive)
 
+def _find_doc_id_by_source_ref(source_ref: str) -> Optional[str]:
+    try:
+        for d in datastore.list_documents(employee_id=None):
+            if str(d.get("source_ref", "")) == str(source_ref):
+                return str(d.get("id"))
+    except Exception:
+        return None
+    return None
 
-def _document_artifact(title: str, doc_type: str, employee_id: str, source_ref: str) -> Dict[str, Any]:
+
+def _source_doc_ref(*, source_ref: str, title: str,
+                    anchor: Optional[str] = None,
+                    quote: Optional[str] = None,
+                    highlight: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    return {
+        "kind": "document_ref",
+        "doc_id": _find_doc_id_by_source_ref(source_ref),
+        "title": title,
+        "anchor": anchor,
+        "quote": quote,
+        "highlight": highlight,
+    }
+
+
+def _doc_html_shell(title: str, *, subtitle: str | None = None, blocks: List[str] | None = None) -> str:
+    sub = f"<div class='doc-subtitle'>{subtitle}</div>" if subtitle else ""
+    body = "\n".join(blocks or ["<p>Документ сформирован автоматически в демо-режиме.</p>"])
+    # Минимальная «офисная» верстка (A4-like) прямо в HTML.
+    return f"""
+<div class="aurora-doc">
+  <div class="doc-header">
+    <div class="doc-brand">АО «Газпром Шельфпроект»</div>
+    <div class="doc-title">{title}</div>
+    {sub}
+  </div>
+  <div class="doc-body">
+    {body}
+  </div>
+  <div class="doc-footer">
+    <div>Подготовлено: Aurora.MIND (demo)</div>
+    <div style="text-align:right;">Стр. 1</div>
+  </div>
+</div>
+""".strip()
+
+
+def _document_artifact(title: str, doc_type: str, employee_id: str, source_ref: str,
+                       *, html: str | None = None) -> Dict[str, Any]:
     from uuid import uuid4
     doc = {
         "id": f"doc_ai_{uuid4().hex[:8]}",
@@ -32,6 +78,10 @@ def _document_artifact(title: str, doc_type: str, employee_id: str, source_ref: 
         "created_at": "только что",
         "source_ref": source_ref,
         "generated": True,
+        "content": {
+            "kind": "html",
+            "html": html or _doc_html_shell(title),
+        }
     }
     datastore.add_artifact(doc)
     return doc
@@ -221,6 +271,21 @@ def _result_contract_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
         source_ref=contract.get("id", "")
     )]
 
+    sources: List[Any] = []
+    contract_id = contract.get("id")
+    contract_number = contract.get("number")
+    if contract_id and contract_number:
+        # Даём 1-2 точечных источника по самым “сильным” пунктам
+        clause = None
+        if risks:
+            clause = risks[0].get("clause")
+        sources.append(_source_doc_ref(
+            source_ref=str(contract_id),
+            title=f"Договор {contract_number}",
+            anchor=str(clause) if clause and clause != "—" else None,
+            highlight={"mode": "clause", "value": str(clause)} if clause and clause != "—" else None,
+        ))
+
     return TaskResult(
         scenario_id=scenario.id,
         title=f"Анализ рисков · {contract.get('number')}",
@@ -235,7 +300,7 @@ def _result_contract_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
             "verdict": verdict,
             "risks": risks
         },
-        sources=list(scenario.plan.documents),
+        sources=sources or list(scenario.plan.documents),
         documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
@@ -311,6 +376,22 @@ def _result_kp_legal_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
         source_ref=(target_kp or {}).get("id", tender.get("id", "")),
     )]
 
+    sources: List[Any] = []
+    if tender.get("id") and tender.get("number"):
+        sources.append(_source_doc_ref(
+            source_ref=str(tender.get("id")),
+            title=f"ТЗ {tender.get('number')}",
+            anchor=None,
+            highlight=None,
+        ))
+    if (target_kp or {}).get("id") and kp_label:
+        sources.append(_source_doc_ref(
+            source_ref=str((target_kp or {}).get("id")),
+            title=f"{kp_label} · {supplier_label}",
+            anchor="п. 5.2 / 7 / 11",
+            highlight={"mode": "text", "value": "неустойк"}  # best-effort
+        ))
+
     return TaskResult(
         scenario_id=scenario.id,
         title=f"Юр. проверка КП · {tender_label}",
@@ -326,7 +407,7 @@ def _result_kp_legal_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
             "verdict": verdict,
             "risks": risks,
         },
-        sources=list(scenario.plan.documents),
+        sources=sources or list(scenario.plan.documents),
         documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,

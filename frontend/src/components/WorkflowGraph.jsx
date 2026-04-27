@@ -44,6 +44,8 @@ export default function WorkflowGraph({ workflow, employee, onNodeClick, emptyTi
         description: node.description,
         duration: node.duration_ms,
         config: node.config || {},
+        output_data: node.output_data,
+        error: node.error,
         onNodeClick: onNodeClick,
       },
     }));

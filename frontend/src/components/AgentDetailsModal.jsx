@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Clock, CheckCircle, Loader2, Wrench, BookOpen } from 'lucide-react';
+import { X, Clock, CheckCircle, Loader2, Wrench, BookOpen, FileJson, Maximize2 } from 'lucide-react';
 
 const STATUS_LABEL = {
   pending: 'Ожидает',
@@ -10,6 +10,7 @@ const STATUS_LABEL = {
 };
 
 export default function AgentDetailsModal({ agent, onClose }) {
+  const [showFull, setShowFull] = useState(false);
   return (
     <AnimatePresence>
       {agent && (
@@ -78,6 +79,70 @@ export default function AgentDetailsModal({ agent, onClose }) {
                   </div>
                 )}
               </div>
+
+              {agent.output_data && (
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                  <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-white/40">
+                      <FileJson className="w-3.5 h-3.5" />
+                      Результат шага
+                    </div>
+                    <button
+                      onClick={() => setShowFull(true)}
+                      className="flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
+                      title="Открыть полностью"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" /> Полностью
+                    </button>
+                  </div>
+                  <pre className="p-3 text-[11px] text-white/75 overflow-auto max-h-56 whitespace-pre-wrap">
+{JSON.stringify(agent.output_data, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+      {agent && (
+        <AgentOutputModal
+          open={showFull}
+          title={`Результат шага · ${agent.name}`}
+          data={agent.output_data}
+          onClose={() => setShowFull(false)}
+        />
+      )}
+    </AnimatePresence>
+  );
+}
+
+export function AgentOutputModal({ open, title, data, onClose }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.95, y: 18 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 18 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-gpn-dark border border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
+          >
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white/80">
+                <FileJson className="w-5 h-5 text-cyan-300" />
+                <span className="font-semibold">{title || 'Результат шага'}</span>
+              </div>
+              <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-auto">
+              <pre className="text-[12px] text-white/80 whitespace-pre-wrap">
+{JSON.stringify(data, null, 2)}
+              </pre>
             </div>
           </motion.div>
         </motion.div>

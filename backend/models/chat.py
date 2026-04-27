@@ -105,7 +105,9 @@ class TaskResult(BaseModel):
     title: str
     summary: str
     artifact: Dict[str, Any] = Field(default_factory=dict)
-    sources: List[str] = Field(default_factory=list)
+    # Источники могут быть как простыми строками (back-compat),
+    # так и структурированными ссылками на документ.
+    sources: List[Any] = Field(default_factory=list)
     documents_created: List[Dict[str, Any]] = Field(default_factory=list)
     proactive: List[ProactiveSuggestion] = Field(default_factory=list)
     duration_ms: int = 0
