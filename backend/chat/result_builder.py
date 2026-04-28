@@ -66,6 +66,126 @@ def _doc_html_shell(title: str, *, subtitle: str | None = None, blocks: List[str
 """.strip()
 
 
+def _sev_badge(sev: str) -> str:
+    sev_l = (sev or "").lower()
+    if sev_l in ("critical", "high"):
+        cls = "background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.35); color: rgba(252,165,165,0.95);"
+    elif sev_l in ("major", "medium"):
+        cls = "background: rgba(245,158,11,0.14); border: 1px solid rgba(245,158,11,0.35); color: rgba(253,230,138,0.95);"
+    else:
+        cls = "background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.35); color: rgba(167,243,208,0.95);"
+    label = sev_l.upper() if sev_l else "—"
+    return f"<span style='padding:2px 8px; border-radius:999px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; {cls}'>{label}</span>"
+
+
+def _html_contract_risks(contract: Dict[str, Any], risks: List[Dict[str, Any]], verdict: str, summary: str) -> str:
+    number = contract.get("number") or "—"
+    contractor = (contract.get("contractor") or {}).get("name") or "—"
+    amount = contract.get("amount")
+    amount_line = f"{amount:,} ₽".replace(",", " ") if isinstance(amount, (int, float)) else "—"
+    verdict_label = {"high": "высокий", "medium": "средний", "low": "низкий"}.get(verdict, "средний")
+
+    rows = []
+    for r in risks:
+        rows.append(
+            "<tr style='border-top:1px solid rgba(255,255,255,0.08); vertical-align:top;'>"
+            f"<td style='padding:10px 10px; white-space:nowrap;'>{_sev_badge(r.get('severity',''))}</td>"
+            f"<td style='padding:10px 10px;'><div style='font-weight:700; color:white;'>{r.get('title','—')}</div>"
+            f"<div style='margin-top:4px; color:rgba(255,255,255,0.75);'>{r.get('rationale','')}</div>"
+            f"<div style='margin-top:6px; color:rgba(167,243,208,0.9);'>→ {r.get('recommendation','')}</div>"
+            f"<div style='margin-top:6px; font-size:12px; color:rgba(255,255,255,0.55);'>Основание: {r.get('reference','—')}</div>"
+            "</td>"
+            f"<td style='padding:10px 10px; white-space:nowrap; color:rgba(255,255,255,0.7);'>{r.get('clause','—')}</td>"
+            "</tr>"
+        )
+
+    blocks = [
+        "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;'>"
+        "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Договор</div>"
+        f"<div style='font-size:16px; font-weight:800; color:white; margin-top:4px;'>{number}</div>"
+        f"<div style='font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;'>{contractor}</div>"
+        "</div>"
+        "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Итог</div>"
+        f"<div style='font-size:14px; font-weight:800; color:white; margin-top:4px;'>Уровень рисков: {verdict_label}</div>"
+        f"<div style='font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;'>Сумма: {amount_line}</div>"
+        "</div>"
+        "</div>",
+        f"<div style='padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Краткий вывод</div>"
+        f"<div style='margin-top:6px; color:rgba(255,255,255,0.85);'>{summary}</div>"
+        "</div>",
+        "<div style='margin-top:14px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,0.55);'>Риски и рекомендации</div>",
+        "<div style='margin-top:8px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden;'>"
+        "<table style='width:100%; border-collapse:collapse; font-size:13px;'>"
+        "<thead style='background:rgba(255,255,255,0.03);'>"
+        "<tr>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6); font-weight:700;'>Severity</th>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6); font-weight:700;'>Описание</th>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6); font-weight:700;'>Пункт</th>"
+        "</tr>"
+        "</thead>"
+        "<tbody>"
+        + "".join(rows)
+        + "</tbody></table></div>",
+    ]
+    return _doc_html_shell(
+        f"Правовое заключение по договору {number}",
+        subtitle="Риски, рекомендации и ссылки на пункты договора (demo)",
+        blocks=blocks
+    )
+
+
+def _html_kp_legal_risks(tender: Dict[str, Any], kp: Dict[str, Any], risks: List[Dict[str, Any]], verdict: str, summary: str) -> str:
+    tnum = tender.get("number") or tender.get("id") or "—"
+    knum = kp.get("number") or "—"
+    supplier = (kp.get("supplier") or {}).get("name") or kp.get("supplier") or "—"
+    verdict_label = {"high": "высокий", "medium": "средний", "low": "низкий"}.get(verdict, "средний")
+
+    items = []
+    for r in risks:
+        items.append(
+            "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+            f"<div style='display:flex; align-items:center; gap:10px;'>"
+            f"{_sev_badge(r.get('severity',''))}"
+            f"<div style='font-weight:800; color:white;'>{r.get('title','—')}</div>"
+            f"<div style='margin-left:auto; color:rgba(255,255,255,0.65); font-size:12px;'>{r.get('clause','—')}</div>"
+            "</div>"
+            f"<div style='margin-top:6px; color:rgba(255,255,255,0.75);'>{r.get('rationale','')}</div>"
+            f"<div style='margin-top:8px; color:rgba(167,243,208,0.9);'>→ {r.get('recommendation','')}</div>"
+            "</div>"
+        )
+
+    blocks = [
+        "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;'>"
+        "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Тендер</div>"
+        f"<div style='font-size:16px; font-weight:800; color:white; margin-top:4px;'>{tnum}</div>"
+        "</div>"
+        "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Коммерческое предложение</div>"
+        f"<div style='font-size:16px; font-weight:800; color:white; margin-top:4px;'>{knum}</div>"
+        f"<div style='font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;'>{supplier}</div>"
+        "</div>"
+        "</div>",
+        f"<div style='padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Краткий вывод</div>"
+        f"<div style='margin-top:6px; color:rgba(255,255,255,0.85);'>{summary}</div>"
+        f"<div style='margin-top:8px; font-size:12px; color:rgba(255,255,255,0.6);'>Уровень рисков: <b style='color:white;'>{verdict_label}</b></div>"
+        "</div>",
+        "<div style='margin-top:14px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,0.55);'>Риски</div>",
+        "<div style='margin-top:8px; display:flex; flex-direction:column; gap:10px;'>"
+        + "".join(items)
+        + "</div>",
+    ]
+    return _doc_html_shell(
+        f"Юридическая проверка КП {knum} (тендер {tnum})",
+        subtitle="Риски и рекомендации по условиям КП перед подписанием (demo)",
+        blocks=blocks
+    )
+
+
 def _document_artifact(title: str, doc_type: str, employee_id: str, source_ref: str,
                        *, html: str | None = None) -> Dict[str, Any]:
     from uuid import uuid4
@@ -268,7 +388,8 @@ def _result_contract_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
         title=f"Правовое заключение по договору {contract.get('number')}",
         doc_type="заключение",
         employee_id=employee_id,
-        source_ref=contract.get("id", "")
+        source_ref=contract.get("id", ""),
+        html=_html_contract_risks(contract, risks, verdict, summary),
     )]
 
     sources: List[Any] = []
@@ -374,6 +495,7 @@ def _result_kp_legal_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
         doc_type="заключение",
         employee_id=employee_id,
         source_ref=(target_kp or {}).get("id", tender.get("id", "")),
+        html=_html_kp_legal_risks(tender, target_kp or {}, risks, verdict, summary),
     )]
 
     sources: List[Any] = []

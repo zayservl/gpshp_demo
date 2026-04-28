@@ -2,86 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Server, 
-  Database, 
-  FileCheck, 
-  Building2, 
   Loader2, 
   CheckCircle, 
   Clock,
   ChevronDown,
   ChevronUp,
-  Activity
 } from 'lucide-react';
-
-// Конфигурация систем
-const SYSTEMS_CONFIG = {
-  era: {
-    name: 'ЭРА.Бурение',
-    icon: Database,
-    color: 'blue',
-    description: 'Система мониторинга буровых работ',
-    endpoint: 'GET /api/v1/era/drilling-data',
-    mockData: {
-      request: '{ "contract_id": "CNT-2024-001", "period": "2025-01" }',
-      response: '{ "items": [...], "total": 15, "source": "era" }'
-    }
-  },
-  smb: {
-    name: 'СМБ 2.0',
-    icon: Activity,
-    color: 'cyan',
-    description: 'Система мониторинга бурения',
-    endpoint: 'GET /api/v1/smb/actual-works',
-    mockData: {
-      request: '{ "contract_id": "CNT-2024-001", "date_range": "2025-01" }',
-      response: '{ "works": [...], "count": 23, "status": "ok" }'
-    }
-  },
-  contracts: {
-    name: 'Договоры',
-    icon: FileCheck,
-    color: 'purple',
-    description: 'Система управления договорами',
-    endpoint: 'GET /api/v1/contracts/{id}',
-    mockData: {
-      request: '{ "id": "CNT-2024-001" }',
-      response: '{ "number": "ГПН-БС/2024-1847", "rates": [...] }'
-    }
-  },
-  sus: {
-    name: 'СУС',
-    icon: FileCheck,
-    color: 'amber',
-    description: 'Система учётных документов',
-    endpoint: 'POST /api/v1/sus/documents/generate',
-    mockData: {
-      request: '{ "type": "act_ks2", "data": {...} }',
-      response: '{ "doc_id": "ACT-2025-001", "status": "created" }'
-    }
-  },
-  edo: {
-    name: 'ЭДО',
-    icon: CheckCircle,
-    color: 'emerald',
-    description: 'Электронный документооборот',
-    endpoint: 'POST /api/v1/edo/routes',
-    mockData: {
-      request: '{ "document_id": "ACT-001", "route_type": "approval" }',
-      response: '{ "route_id": "R-001", "steps": [...] }'
-    }
-  },
-  erp: {
-    name: 'ERP (SAP)',
-    icon: Building2,
-    color: 'red',
-    description: 'SAP ERP - учёт и финансы',
-    endpoint: 'POST /api/v1/erp/accounting',
-    mockData: {
-      request: '{ "document": {...}, "action": "post" }',
-      response: '{ "erp_id": "SAP-2025-0001", "posted": true }'
-    }
-  }
-};
+import { SYSTEMS_CONFIG } from '../lib/systems';
 
 const COLOR_CLASSES = {
   blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
