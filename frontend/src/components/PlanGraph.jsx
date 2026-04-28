@@ -221,9 +221,9 @@ export default function PlanGraph({
         <button
           onClick={onApprove}
           disabled={disabled || activeStats.tools === 0}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          <Play className="w-4 h-4" />
+          <Play className="w-3.5 h-3.5" />
           Согласовать и выполнить
         </button>
 

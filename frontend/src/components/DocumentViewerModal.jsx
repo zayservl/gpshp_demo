@@ -11,9 +11,10 @@ const KIND_LABELS = {
   tender: 'Техническое задание',
   daily_ops: 'Ежедневная сводка',
   lna: 'Локальный нормативный акт',
+  html: 'Документ (сформирован)',
 };
 
-export default function DocumentViewerModal({ docId, onClose }) {
+export default function DocumentViewerModal({ docId, highlight, onClose }) {
   const [loading, setLoading] = useState(false);
   const [doc, setDoc] = useState(null);
   const [error, setError] = useState(null);
@@ -91,7 +92,7 @@ export default function DocumentViewerModal({ docId, onClose }) {
               <div className="text-red-400 text-sm">Не удалось открыть документ: {error}</div>
             )}
             {doc && !loading && !error && (
-              <DocumentBody doc={doc} />
+              <DocumentBody doc={doc} highlight={highlight} />
             )}
           </div>
 
@@ -124,7 +125,7 @@ export default function DocumentViewerModal({ docId, onClose }) {
 // Body renderers per content kind
 // ---------------------------------------------------------------------------
 
-function DocumentBody({ doc }) {
+function DocumentBody({ doc, highlight }) {
   const content = doc.content_full || {};
   const kind = content.kind;
   const data = content.data || {};
@@ -139,14 +140,39 @@ function DocumentBody({ doc }) {
   }
 
   if (kind === 'application') return <ApplicationView a={data} />;
-  if (kind === 'contract') return <ContractView c={data} />;
+  if (kind === 'contract') return <ContractView c={data} highlight={highlight} />;
   if (kind === 'letter') return <LetterView l={data} />;
   if (kind === 'appeal') return <AppealView a={data} />;
   if (kind === 'proposal') return <ProposalView p={data} />;
   if (kind === 'tender') return <TenderView t={data} />;
   if (kind === 'daily_ops') return <DailyOpsView o={data} />;
-  if (kind === 'lna') return <LnaView l={data} />;
+  if (kind === 'lna') return <LnaView l={data} highlight={highlight} />;
+  if (kind === 'html') return <HtmlDocView html={content.html} />;
   return <Metadata doc={doc} />;
+}
+
+function normalizeHighlight(h) {
+  if (!h || typeof h !== 'object') return null;
+  const mode = String(h.mode || '');
+  const value = h.value;
+  if (!mode) return null;
+  return { mode, value };
+}
+
+function shouldHighlightClause(highlight, clauseNumber) {
+  if (!highlight || highlight.mode !== 'clause') return false;
+  const v = String(highlight.value || '').trim();
+  if (!v) return false;
+  const normalized = v.replace(/[^\d.,]/g, '').split(',').map(s => s.trim()).filter(Boolean);
+  if (normalized.length === 0) return false;
+  return normalized.includes(String(clauseNumber));
+}
+
+function shouldHighlightSection(highlight, section) {
+  if (!highlight || highlight.mode !== 'section') return false;
+  const v = String(highlight.value || '').trim().toLowerCase();
+  if (!v) return false;
+  return String(section || '').toLowerCase().includes(v);
 }
 
 const Row = ({ label, children }) => (
@@ -239,7 +265,8 @@ function ApplicationView({ a }) {
   );
 }
 
-function ContractView({ c }) {
+function ContractView({ c, highlight }) {
+  const h = normalizeHighlight(highlight);
   return (
     <div>
       <Section title="Реквизиты">
@@ -253,8 +280,18 @@ function ContractView({ c }) {
       {c.clauses?.length > 0 && (
         <Section title="Ключевые пункты">
           {c.clauses.map((cl, i) => (
-            <div key={i} className="py-2 border-b border-white/5 last:border-0">
-              <div className="text-xs text-cyan-300 font-medium">{cl.number} — {cl.title}</div>
+            <div
+              key={i}
+              className={`py-2 border-b border-white/5 last:border-0 rounded-lg px-2 -mx-2 ${
+                shouldHighlightClause(h, cl.number) ? 'bg-amber-500/10 border border-amber-400/20' : ''
+              }`}
+            >
+              <div className="text-xs text-cyan-300 font-medium">
+                {cl.number} — {cl.title}
+                {shouldHighlightClause(h, cl.number) && (
+                  <span className="ml-2 text-[10px] uppercase tracking-wider text-amber-300">highlight</span>
+                )}
+              </div>
               <div className="text-sm text-white/80 mt-0.5 leading-snug">{cl.text}</div>
             </div>
           ))}
@@ -411,7 +448,8 @@ function DailyOpsView({ o }) {
   );
 }
 
-function LnaView({ l }) {
+function LnaView({ l, highlight }) {
+  const h = normalizeHighlight(highlight);
   return (
     <div>
       <Section title="Реквизиты">
@@ -422,13 +460,78 @@ function LnaView({ l }) {
       {l.excerpts?.length > 0 && (
         <Section title="Извлечения">
           {l.excerpts.map((ex, i) => (
-            <div key={i} className="py-2 border-b border-white/5 last:border-0">
-              <div className="text-xs text-cyan-300 font-medium">{ex.section}</div>
+            <div
+              key={i}
+              className={`py-2 border-b border-white/5 last:border-0 rounded-lg px-2 -mx-2 ${
+                shouldHighlightSection(h, ex.section) ? 'bg-amber-500/10 border border-amber-400/20' : ''
+              }`}
+            >
+              <div className="text-xs text-cyan-300 font-medium">
+                {ex.section}
+                {shouldHighlightSection(h, ex.section) && (
+                  <span className="ml-2 text-[10px] uppercase tracking-wider text-amber-300">highlight</span>
+                )}
+              </div>
               <div className="text-sm text-white/85 mt-0.5 leading-relaxed">{ex.text}</div>
             </div>
           ))}
         </Section>
       )}
+    </div>
+  );
+}
+
+function HtmlDocView({ html }) {
+  if (!html) return <div className="text-white/60 text-sm">Пустой документ.</div>;
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+      <style>{`
+        .aurora-doc {
+          color: rgba(255,255,255,0.9);
+          font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+        }
+        .aurora-doc .doc-header {
+          padding: 18px 18px 12px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.03);
+        }
+        .aurora-doc .doc-brand {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: .14em;
+          color: rgba(34,211,238,0.9);
+        }
+        .aurora-doc .doc-title {
+          margin-top: 6px;
+          font-size: 18px;
+          font-weight: 800;
+          color: white;
+        }
+        .aurora-doc .doc-subtitle {
+          margin-top: 6px;
+          font-size: 12px;
+          color: rgba(255,255,255,0.6);
+        }
+        .aurora-doc .doc-body {
+          padding: 18px;
+          font-size: 13px;
+          line-height: 1.55;
+        }
+        .aurora-doc .doc-body p { margin: 0 0 10px; }
+        .aurora-doc .doc-footer {
+          padding: 10px 18px;
+          border-top: 1px solid rgba(255,255,255,0.08);
+          color: rgba(255,255,255,0.45);
+          font-size: 11px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          background: rgba(255,255,255,0.02);
+        }
+      `}</style>
+      <div
+        className="p-4"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </div>
   );
 }

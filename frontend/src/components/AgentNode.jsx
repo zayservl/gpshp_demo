@@ -11,12 +11,28 @@ const STATUS_STYLES = {
 };
 
 function AgentNode({ data, isConnectable }) {
-  const { label, icon, status, color, description, duration, config, onNodeClick } = data;
+  const { label, icon, status, color, description, duration, config, onNodeClick, output_data } = data;
   const styles = STATUS_STYLES[status] || STATUS_STYLES.pending;
   const StatusIcon = styles.icon;
 
   const tool = config?.tool;
   const source = config?.source;
+
+  const outputPreview = (() => {
+    if (!output_data) return null;
+    try {
+      if (typeof output_data === 'string') return output_data.slice(0, 80);
+      if (Array.isArray(output_data)) return `[${output_data.length} элементов]`;
+      if (typeof output_data === 'object') {
+        const keys = Object.keys(output_data).slice(0, 4);
+        if (keys.length === 0) return '{ }';
+        return `{ ${keys.join(', ')}${Object.keys(output_data).length > keys.length ? ', …' : ''} }`;
+      }
+      return String(output_data).slice(0, 80);
+    } catch {
+      return '…';
+    }
+  })();
 
   const handleClick = () => {
     onNodeClick?.({
@@ -29,6 +45,7 @@ function AgentNode({ data, isConnectable }) {
       description,
       icon,
       color,
+      output_data,
     });
   };
 
@@ -76,6 +93,12 @@ function AgentNode({ data, isConnectable }) {
               animate={{ width: '100%' }}
               transition={{ duration: 3, ease: 'linear', repeat: Infinity }}
             />
+          </div>
+        )}
+
+        {status === 'completed' && outputPreview && (
+          <div className="mt-2 text-[11px] text-white/70 bg-black/20 border border-white/10 rounded-lg px-2 py-1">
+            {outputPreview}
           </div>
         )}
 

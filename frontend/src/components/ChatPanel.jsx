@@ -400,11 +400,35 @@ function ResultBlock({ payload, color, onProactive, onOpenDocument }) {
         <div className="px-3 py-2 border-t border-white/5">
           <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Источники</div>
           <div className="flex flex-wrap gap-1">
-            {payload.sources.map((s, i) => (
-              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/60">
-                {s}
-              </span>
-            ))}
+            {payload.sources.map((s, i) => {
+              const isObj = s && typeof s === 'object';
+              const isDocRef = isObj && s.kind === 'document_ref';
+              if (isDocRef) {
+                const title = s.title || 'Документ';
+                const anchor = s.anchor ? ` · ${s.anchor}` : '';
+                const disabled = !onOpenDocument || !s.doc_id;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => onOpenDocument?.(s.doc_id, s.highlight)}
+                    disabled={disabled}
+                    className={`text-[10px] px-2 py-1 rounded-full border transition-colors ${
+                      disabled
+                        ? 'bg-white/[0.03] border-white/10 text-white/30 cursor-not-allowed'
+                        : 'bg-cyan-500/10 border-cyan-400/20 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400/30'
+                    }`}
+                    title={s.quote || title}
+                  >
+                    ↗ {title}{anchor}
+                  </button>
+                );
+              }
+              return (
+                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/60">
+                  {String(s)}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}

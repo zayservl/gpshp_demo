@@ -6,7 +6,7 @@
 человеко-читаемый summary + artifact + proactive-предложения.
 """
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from backend.data_access import datastore
 from backend.models.chat import TaskResult
@@ -20,8 +20,413 @@ from backend.models.employee import ProactiveSuggestion, Scenario
 def _proactive_of(scenario: Scenario) -> List[ProactiveSuggestion]:
     return list(scenario.proactive)
 
+def _find_doc_id_by_source_ref(source_ref: str) -> Optional[str]:
+    try:
+        for d in datastore.list_documents(employee_id=None):
+            if str(d.get("source_ref", "")) == str(source_ref):
+                return str(d.get("id"))
+    except Exception:
+        return None
+    return None
 
-def _document_artifact(title: str, doc_type: str, employee_id: str, source_ref: str) -> Dict[str, Any]:
+
+def _source_doc_ref(*, source_ref: str, title: str,
+                    anchor: Optional[str] = None,
+                    quote: Optional[str] = None,
+                    highlight: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    return {
+        "kind": "document_ref",
+        "doc_id": _find_doc_id_by_source_ref(source_ref),
+        "title": title,
+        "anchor": anchor,
+        "quote": quote,
+        "highlight": highlight,
+    }
+
+
+def _doc_html_shell(title: str, *, subtitle: str | None = None, blocks: List[str] | None = None) -> str:
+    sub = f"<div class='doc-subtitle'>{subtitle}</div>" if subtitle else ""
+    body = "\n".join(blocks or ["<p>Документ сформирован автоматически в демо-режиме.</p>"])
+    # Минимальная «офисная» верстка (A4-like) прямо в HTML.
+    return f"""
+<div class="aurora-doc">
+  <div class="doc-header">
+    <div class="doc-brand">АО «Газпром Шельфпроект»</div>
+    <div class="doc-title">{title}</div>
+    {sub}
+  </div>
+  <div class="doc-body">
+    {body}
+  </div>
+  <div class="doc-footer">
+    <div>Подготовлено: Aurora.MIND (demo)</div>
+    <div style="text-align:right;">Стр. 1</div>
+  </div>
+</div>
+""".strip()
+
+
+def _sev_badge(sev: str) -> str:
+    sev_l = (sev or "").lower()
+    if sev_l in ("critical", "high"):
+        cls = "background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.35); color: rgba(252,165,165,0.95);"
+    elif sev_l in ("major", "medium"):
+        cls = "background: rgba(245,158,11,0.14); border: 1px solid rgba(245,158,11,0.35); color: rgba(253,230,138,0.95);"
+    else:
+        cls = "background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.35); color: rgba(167,243,208,0.95);"
+    label = sev_l.upper() if sev_l else "—"
+    return f"<span style='padding:2px 8px; border-radius:999px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; {cls}'>{label}</span>"
+
+def _escape(s: Any) -> str:
+    """Минимальная HTML-экранизация для демо HTML."""
+    txt = "" if s is None else str(s)
+    return (txt.replace("&", "&amp;")
+               .replace("<", "&lt;")
+               .replace(">", "&gt;")
+               .replace('"', "&quot;"))
+
+
+def _kv_card(title: str, value: str) -> str:
+    return (
+        "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>{_escape(title)}</div>"
+        f"<div style='font-size:14px; font-weight:800; color:white; margin-top:6px;'>{_escape(value)}</div>"
+        "</div>"
+    )
+
+
+def _html_proofread(letter_number: str, issues: List[Dict[str, Any]], summary: str) -> str:
+    rows = []
+    for it in issues:
+        rows.append(
+            "<tr style='border-top:1px solid rgba(255,255,255,0.08); vertical-align:top;'>"
+            f"<td style='padding:10px 10px; color:rgba(255,255,255,0.7); white-space:nowrap;'>{_escape(it.get('type','—'))}</td>"
+            f"<td style='padding:10px 10px; color:rgba(252,165,165,0.95); text-decoration:line-through;'>{_escape(it.get('text',''))}</td>"
+            f"<td style='padding:10px 10px; color:rgba(167,243,208,0.95);'>{_escape(it.get('correction',''))}</td>"
+            f"<td style='padding:10px 10px; color:rgba(255,255,255,0.55);'>{_escape(it.get('explanation',''))}</td>"
+            "</tr>"
+        )
+    blocks = [
+        "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:12px;'>"
+        + _kv_card("Письмо", letter_number)
+        + _kv_card("Замечаний", str(len(issues)))
+        + "</div>",
+        f"<div style='margin-top:12px; padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.85);'>{_escape(summary)}</div>",
+        "<div style='margin-top:14px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden;'>"
+        "<table style='width:100%; border-collapse:collapse; font-size:13px;'>"
+        "<thead style='background:rgba(255,255,255,0.03);'>"
+        "<tr>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6);'>Тип</th>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6);'>Как было</th>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6);'>Как нужно</th>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6);'>Пояснение</th>"
+        "</tr>"
+        "</thead><tbody>"
+        + "".join(rows or ["<tr><td style='padding:12px 10px; color:rgba(255,255,255,0.6);' colspan='4'>Замечаний нет.</td></tr>"])
+        + "</tbody></table></div>",
+    ]
+    return _doc_html_shell(
+        f"Отчёт о проверке текста · {letter_number}",
+        subtitle="Замечания, исправления и пояснения (demo)",
+        blocks=blocks
+    )
+
+
+def _html_translation(tr: Dict[str, Any], summary: str) -> str:
+    ru = tr.get("ru") or ""
+    en = tr.get("en") or ""
+    glossary = tr.get("glossary") or []
+    gl = ""
+    if glossary:
+        gl_items = "".join(
+            f"<li style='margin:4px 0; color:rgba(255,255,255,0.75);'><b style='color:white;'>{_escape(g.get('ru'))}</b> → {_escape(g.get('en'))}</li>"
+            for g in glossary
+        )
+        gl = f"<div style='margin-top:12px;'><div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,0.55);'>Глоссарий</div><ul style='margin:6px 0 0 18px;'>{gl_items}</ul></div>"
+    blocks = [
+        f"<div style='padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.85);'>{_escape(summary)}</div>",
+        "<div style='margin-top:12px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;'>"
+        "<div style='padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        "<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>RU</div>"
+        f"<div style='margin-top:6px; white-space:pre-wrap; color:rgba(255,255,255,0.85);'>{_escape(ru)}</div>"
+        "</div>"
+        "<div style='padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        "<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>EN</div>"
+        f"<div style='margin-top:6px; white-space:pre-wrap; color:rgba(255,255,255,0.85);'>{_escape(en)}</div>"
+        "</div>"
+        "</div>"
+        + gl,
+    ]
+    return _doc_html_shell("Перевод фрагмента договора RU→EN", subtitle="Перевод и глоссарий (demo)", blocks=blocks)
+
+
+def _html_semantic_search(hits: List[Dict[str, Any]], summary: str) -> str:
+    cards = []
+    for h in hits:
+        cards.append(
+            "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+            f"<div style='font-weight:800; color:white;'>{_escape(h.get('document'))}</div>"
+            f"<div style='margin-top:2px; color:rgba(34,211,238,0.85); font-size:12px;'>{_escape(h.get('section'))}</div>"
+            f"<div style='margin-top:6px; color:rgba(255,255,255,0.8);'>«{_escape(h.get('text'))}»</div>"
+            "</div>"
+        )
+    blocks = [
+        f"<div style='padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.85);'>{_escape(summary)}</div>",
+        "<div style='margin-top:12px; display:flex; flex-direction:column; gap:10px;'>"
+        + "".join(cards or ["<div style='color:rgba(255,255,255,0.6);'>Нет результатов.</div>"])
+        + "</div>",
+    ]
+    return _doc_html_shell("Подборка фрагментов ЛНА по запросу", subtitle="Результаты поиска (demo)", blocks=blocks)
+
+
+def _html_compare_kp(tender: Dict[str, Any], proposals: List[Dict[str, Any]],
+                     winner_id: Any, rationale: str | None, summary: str) -> str:
+    tnum = tender.get("number") or tender.get("id") or "—"
+    # Сортируем для стабильности отображения
+    props = list(proposals or [])
+    props.sort(key=lambda p: (p.get("price_rub") or 0))
+    rows = []
+    for p in props:
+        is_winner = str(p.get("id")) == str(winner_id)
+        supplier = (p.get("supplier") or {}).get("name") or "—"
+        price = (p.get("price_rub") or 0)
+        price_s = f"{price:,} ₽".replace(",", " ")
+        note = "Победитель" if is_winner else ""
+        rows.append(
+            "<tr style='border-top:1px solid rgba(255,255,255,0.08);'>"
+            f"<td style='padding:10px 10px; font-weight:800; color:white;'>{'🏆 ' if is_winner else ''}{_escape(p.get('number'))}</td>"
+            f"<td style='padding:10px 10px; color:rgba(255,255,255,0.8);'>{_escape(supplier)}</td>"
+            f"<td style='padding:10px 10px; text-align:right; color:rgba(255,255,255,0.85);'>{price_s}</td>"
+            f"<td style='padding:10px 10px; color:rgba(167,243,208,0.85);'>{_escape(note)}</td>"
+            "</tr>"
+        )
+    blocks = [
+        "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:12px;'>"
+        + _kv_card("Закупка", tnum)
+        + _kv_card("Предложений", str(len(props)))
+        + "</div>",
+        f"<div style='margin-top:12px; padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.85);'>{_escape(summary)}</div>",
+        (f"<div style='margin-top:10px; color:rgba(255,255,255,0.7); font-size:13px;'><b style='color:white;'>Обоснование:</b> {_escape(rationale or '')}</div>" if rationale else ""),
+        "<div style='margin-top:14px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden;'>"
+        "<table style='width:100%; border-collapse:collapse; font-size:13px;'>"
+        "<thead style='background:rgba(255,255,255,0.03);'>"
+        "<tr>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6);'>КП</th>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6);'>Поставщик</th>"
+        "<th style='text-align:right; padding:10px 10px; color:rgba(255,255,255,0.6);'>Цена</th>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6);'>Статус</th>"
+        "</tr>"
+        "</thead><tbody>"
+        + "".join(rows or ["<tr><td style='padding:12px 10px; color:rgba(255,255,255,0.6);' colspan='4'>Нет данных.</td></tr>"])
+        + "</tbody></table></div>",
+    ]
+    blocks = [b for b in blocks if b]  # убрать пустые
+    return _doc_html_shell(f"Сравнительный анализ КП по закупке {tnum}", subtitle="Сводка и таблица сравнения (demo)", blocks=blocks)
+
+
+def _html_application_check(app: Dict[str, Any], check: Dict[str, Any], summary: str) -> str:
+    issues = check.get("issues", []) or []
+    passed = check.get("passed", []) or []
+    issue_cards = []
+    for it in issues:
+        issue_cards.append(
+            "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+            f"<div style='display:flex; align-items:center; gap:10px;'>{_sev_badge(it.get('severity',''))}"
+            f"<div style='font-weight:800; color:white;'>{_escape(it.get('field','—'))}</div></div>"
+            f"<div style='margin-top:6px; color:rgba(255,255,255,0.8);'>{_escape(it.get('description',''))}</div>"
+            f"<div style='margin-top:8px; color:rgba(167,243,208,0.9);'>→ {_escape(it.get('recommendation',''))}</div>"
+            "</div>"
+        )
+    blocks = [
+        "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:12px;'>"
+        + _kv_card("Заявка", f"№{app.get('number','—')}")
+        + _kv_card("Замечаний", str(len(issues)))
+        + "</div>",
+        f"<div style='margin-top:12px; padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.85);'>{_escape(summary)}</div>",
+        ("<div style='margin-top:14px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,0.55);'>Замечания</div>"
+         "<div style='margin-top:8px; display:flex; flex-direction:column; gap:10px;'>" + "".join(issue_cards) + "</div>") if issue_cards else "",
+        ("<div style='margin-top:14px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,0.55);'>Что в порядке</div>"
+         "<ul style='margin:8px 0 0 18px; color:rgba(255,255,255,0.75);'>"
+         + "".join(f"<li style='margin:4px 0;'>{_escape(p)}</li>" for p in passed) + "</ul>") if passed else "",
+    ]
+    blocks = [b for b in blocks if b]
+    return _doc_html_shell(f"Отчёт о комплектности заявки №{app.get('number','—')}", subtitle="Проверка полей, согласований и рекомендаций (demo)", blocks=blocks)
+
+
+def _html_supplier_card(supplier: Dict[str, Any], summary: str) -> str:
+    blocks = [
+        "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:12px;'>"
+        + _kv_card("Подрядчик", supplier.get("name", "—"))
+        + _kv_card("Рейтинг", str(supplier.get("rating", "—")))
+        + "</div>",
+        f"<div style='margin-top:12px; padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.85);'>{_escape(summary)}</div>",
+        "<div style='margin-top:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='color:rgba(255,255,255,0.75);'>ИНН: <b style='color:white;'>{_escape(supplier.get('inn','—'))}</b></div>"
+        f"<div style='margin-top:6px; color:rgba(255,255,255,0.75);'>Надёжность: <b style='color:white;'>{_escape(supplier.get('reliability','—'))}</b></div>"
+        f"<div style='margin-top:6px; color:rgba(255,255,255,0.75);'>Контрактов: <b style='color:white;'>{_escape(supplier.get('contracts_count','—'))}</b> · Нарушений: <b style='color:white;'>{_escape(supplier.get('breaches_count','—'))}</b></div>"
+        "</div>",
+    ]
+    return _doc_html_shell(f"Карточка подрядчика · {supplier.get('name','—')}", subtitle="Сводка по надёжности и истории (demo)", blocks=blocks)
+
+
+def _html_appeal_response(appeal: Dict[str, Any], template: Dict[str, Any], summary: str) -> str:
+    blocks = [
+        "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:12px;'>"
+        + _kv_card("Обращение", f"№{appeal.get('number','—')}")
+        + _kv_card("Категория", str(appeal.get("category","—")))
+        + "</div>",
+        f"<div style='margin-top:12px; padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.85);'>{_escape(summary)}</div>",
+    ]
+    # Тело ответа
+    greeting = template.get("greeting") or ""
+    opening = template.get("opening") or ""
+    closing = template.get("closing") or ""
+    signature = template.get("signature") or ""
+    sections = template.get("sections") or []
+    sec_html = ""
+    if sections:
+        sec_html = "".join(
+            "<div style='margin-top:10px;'>"
+            f"<div style='font-weight:800; color:rgba(34,211,238,0.9);'>{_escape(s.get('title',''))}</div>"
+            f"<div style='margin-top:4px; color:rgba(255,255,255,0.85); white-space:pre-wrap;'>{_escape(s.get('content',''))}</div>"
+            "</div>"
+            for s in sections
+        )
+    body = (
+        "<div style='margin-top:12px; padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-weight:800; color:white;'>{_escape(greeting)}</div>"
+        f"<div style='margin-top:8px; color:rgba(255,255,255,0.85); white-space:pre-wrap;'>{_escape(opening)}</div>"
+        + sec_html +
+        f"<div style='margin-top:10px; color:rgba(255,255,255,0.85); white-space:pre-wrap;'>{_escape(closing)}</div>"
+        f"<div style='margin-top:10px; color:rgba(255,255,255,0.6); white-space:pre-wrap;'>{_escape(signature)}</div>"
+        "</div>"
+    )
+    blocks.append(body)
+    return _doc_html_shell(f"Проект ответа на обращение №{appeal.get('number','—')}", subtitle="Проект письма (demo)", blocks=blocks)
+
+def _html_simple(title: str, summary: str, *, bullets: Optional[List[str]] = None) -> str:
+    b = ""
+    if bullets:
+        b = "<ul style='margin:8px 0 0 18px; color:rgba(255,255,255,0.8);'>" + "".join(
+            f"<li style='margin:4px 0;'>{_escape(x)}</li>" for x in bullets
+        ) + "</ul>"
+    blocks = [
+        f"<div style='padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.85);'>{_escape(summary)}</div>",
+        b,
+    ]
+    return _doc_html_shell(title, subtitle="Документ сформирован в демо-режиме", blocks=[x for x in blocks if x])
+
+
+def _html_contract_risks(contract: Dict[str, Any], risks: List[Dict[str, Any]], verdict: str, summary: str) -> str:
+    number = contract.get("number") or "—"
+    contractor = (contract.get("contractor") or {}).get("name") or "—"
+    amount = contract.get("amount")
+    amount_line = f"{amount:,} ₽".replace(",", " ") if isinstance(amount, (int, float)) else "—"
+    verdict_label = {"high": "высокий", "medium": "средний", "low": "низкий"}.get(verdict, "средний")
+
+    rows = []
+    for r in risks:
+        rows.append(
+            "<tr style='border-top:1px solid rgba(255,255,255,0.08); vertical-align:top;'>"
+            f"<td style='padding:10px 10px; white-space:nowrap;'>{_sev_badge(r.get('severity',''))}</td>"
+            f"<td style='padding:10px 10px;'><div style='font-weight:700; color:white;'>{r.get('title','—')}</div>"
+            f"<div style='margin-top:4px; color:rgba(255,255,255,0.75);'>{r.get('rationale','')}</div>"
+            f"<div style='margin-top:6px; color:rgba(167,243,208,0.9);'>→ {r.get('recommendation','')}</div>"
+            f"<div style='margin-top:6px; font-size:12px; color:rgba(255,255,255,0.55);'>Основание: {r.get('reference','—')}</div>"
+            "</td>"
+            f"<td style='padding:10px 10px; white-space:nowrap; color:rgba(255,255,255,0.7);'>{r.get('clause','—')}</td>"
+            "</tr>"
+        )
+
+    blocks = [
+        "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;'>"
+        "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Договор</div>"
+        f"<div style='font-size:16px; font-weight:800; color:white; margin-top:4px;'>{number}</div>"
+        f"<div style='font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;'>{contractor}</div>"
+        "</div>"
+        "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Итог</div>"
+        f"<div style='font-size:14px; font-weight:800; color:white; margin-top:4px;'>Уровень рисков: {verdict_label}</div>"
+        f"<div style='font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;'>Сумма: {amount_line}</div>"
+        "</div>"
+        "</div>",
+        f"<div style='padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Краткий вывод</div>"
+        f"<div style='margin-top:6px; color:rgba(255,255,255,0.85);'>{summary}</div>"
+        "</div>",
+        "<div style='margin-top:14px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,0.55);'>Риски и рекомендации</div>",
+        "<div style='margin-top:8px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden;'>"
+        "<table style='width:100%; border-collapse:collapse; font-size:13px;'>"
+        "<thead style='background:rgba(255,255,255,0.03);'>"
+        "<tr>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6); font-weight:700;'>Severity</th>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6); font-weight:700;'>Описание</th>"
+        "<th style='text-align:left; padding:10px 10px; color:rgba(255,255,255,0.6); font-weight:700;'>Пункт</th>"
+        "</tr>"
+        "</thead>"
+        "<tbody>"
+        + "".join(rows)
+        + "</tbody></table></div>",
+    ]
+    return _doc_html_shell(
+        f"Правовое заключение по договору {number}",
+        subtitle="Риски, рекомендации и ссылки на пункты договора (demo)",
+        blocks=blocks
+    )
+
+
+def _html_kp_legal_risks(tender: Dict[str, Any], kp: Dict[str, Any], risks: List[Dict[str, Any]], verdict: str, summary: str) -> str:
+    tnum = tender.get("number") or tender.get("id") or "—"
+    knum = kp.get("number") or "—"
+    supplier = (kp.get("supplier") or {}).get("name") or kp.get("supplier") or "—"
+    verdict_label = {"high": "высокий", "medium": "средний", "low": "низкий"}.get(verdict, "средний")
+
+    items = []
+    for r in risks:
+        items.append(
+            "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+            f"<div style='display:flex; align-items:center; gap:10px;'>"
+            f"{_sev_badge(r.get('severity',''))}"
+            f"<div style='font-weight:800; color:white;'>{r.get('title','—')}</div>"
+            f"<div style='margin-left:auto; color:rgba(255,255,255,0.65); font-size:12px;'>{r.get('clause','—')}</div>"
+            "</div>"
+            f"<div style='margin-top:6px; color:rgba(255,255,255,0.75);'>{r.get('rationale','')}</div>"
+            f"<div style='margin-top:8px; color:rgba(167,243,208,0.9);'>→ {r.get('recommendation','')}</div>"
+            "</div>"
+        )
+
+    blocks = [
+        "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;'>"
+        "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Тендер</div>"
+        f"<div style='font-size:16px; font-weight:800; color:white; margin-top:4px;'>{tnum}</div>"
+        "</div>"
+        "<div style='padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Коммерческое предложение</div>"
+        f"<div style='font-size:16px; font-weight:800; color:white; margin-top:4px;'>{knum}</div>"
+        f"<div style='font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;'>{supplier}</div>"
+        "</div>"
+        "</div>",
+        f"<div style='padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);'>"
+        f"<div style='font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(34,211,238,0.85);'>Краткий вывод</div>"
+        f"<div style='margin-top:6px; color:rgba(255,255,255,0.85);'>{summary}</div>"
+        f"<div style='margin-top:8px; font-size:12px; color:rgba(255,255,255,0.6);'>Уровень рисков: <b style='color:white;'>{verdict_label}</b></div>"
+        "</div>",
+        "<div style='margin-top:14px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,0.55);'>Риски</div>",
+        "<div style='margin-top:8px; display:flex; flex-direction:column; gap:10px;'>"
+        + "".join(items)
+        + "</div>",
+    ]
+    return _doc_html_shell(
+        f"Юридическая проверка КП {knum} (тендер {tnum})",
+        subtitle="Риски и рекомендации по условиям КП перед подписанием (demo)",
+        blocks=blocks
+    )
+
+
+def _document_artifact(title: str, doc_type: str, employee_id: str, source_ref: str,
+                       *, html: str | None = None) -> Dict[str, Any]:
     from uuid import uuid4
     doc = {
         "id": f"doc_ai_{uuid4().hex[:8]}",
@@ -32,6 +437,10 @@ def _document_artifact(title: str, doc_type: str, employee_id: str, source_ref: 
         "created_at": "только что",
         "source_ref": source_ref,
         "generated": True,
+        "content": {
+            "kind": "html",
+            "html": html or _doc_html_shell(title),
+        }
     }
     datastore.add_artifact(doc)
     return doc
@@ -154,7 +563,8 @@ def _result_check_application(scenario, shared, employee_id, duration_ms) -> Tas
             title=f"Отчёт о комплектности заявки №{app.get('number')}",
             doc_type="отчёт",
             employee_id=employee_id,
-            source_ref=app.get("id", "")
+            source_ref=app.get("id", ""),
+            html=_html_application_check(app, check, summary),
         ))
 
     return TaskResult(
@@ -185,6 +595,7 @@ def _result_semantic_search(scenario, shared, employee_id, duration_ms) -> TaskR
             doc_type="подборка",
             employee_id=employee_id,
             source_ref=top.get("document", ""),
+            html=_html_semantic_search(hits, summary),
         )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -218,8 +629,24 @@ def _result_contract_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
         title=f"Правовое заключение по договору {contract.get('number')}",
         doc_type="заключение",
         employee_id=employee_id,
-        source_ref=contract.get("id", "")
+        source_ref=contract.get("id", ""),
+        html=_html_contract_risks(contract, risks, verdict, summary),
     )]
+
+    sources: List[Any] = []
+    contract_id = contract.get("id")
+    contract_number = contract.get("number")
+    if contract_id and contract_number:
+        # Даём 1-2 точечных источника по самым “сильным” пунктам
+        clause = None
+        if risks:
+            clause = risks[0].get("clause")
+        sources.append(_source_doc_ref(
+            source_ref=str(contract_id),
+            title=f"Договор {contract_number}",
+            anchor=str(clause) if clause and clause != "—" else None,
+            highlight={"mode": "clause", "value": str(clause)} if clause and clause != "—" else None,
+        ))
 
     return TaskResult(
         scenario_id=scenario.id,
@@ -235,7 +662,7 @@ def _result_contract_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
             "verdict": verdict,
             "risks": risks
         },
-        sources=list(scenario.plan.documents),
+        sources=sources or list(scenario.plan.documents),
         documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
@@ -309,7 +736,24 @@ def _result_kp_legal_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
         doc_type="заключение",
         employee_id=employee_id,
         source_ref=(target_kp or {}).get("id", tender.get("id", "")),
+        html=_html_kp_legal_risks(tender, target_kp or {}, risks, verdict, summary),
     )]
+
+    sources: List[Any] = []
+    if tender.get("id") and tender.get("number"):
+        sources.append(_source_doc_ref(
+            source_ref=str(tender.get("id")),
+            title=f"ТЗ {tender.get('number')}",
+            anchor=None,
+            highlight=None,
+        ))
+    if (target_kp or {}).get("id") and kp_label:
+        sources.append(_source_doc_ref(
+            source_ref=str((target_kp or {}).get("id")),
+            title=f"{kp_label} · {supplier_label}",
+            anchor="п. 5.2 / 7 / 11",
+            highlight={"mode": "text", "value": "неустойк"}  # best-effort
+        ))
 
     return TaskResult(
         scenario_id=scenario.id,
@@ -326,7 +770,7 @@ def _result_kp_legal_risks(scenario, shared, employee_id, duration_ms) -> TaskRe
             "verdict": verdict,
             "risks": risks,
         },
-        sources=list(scenario.plan.documents),
+        sources=sources or list(scenario.plan.documents),
         documents_created=docs,
         proactive=_proactive_of(scenario),
         duration_ms=duration_ms,
@@ -344,6 +788,7 @@ def _result_proofread(scenario, shared, employee_id, duration_ms) -> TaskResult:
         doc_type="отчёт",
         employee_id=employee_id,
         source_ref="Исх-45-2024",
+        html=_html_proofread("Исх-45-2024", issues, summary),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -372,6 +817,7 @@ def _result_translate(scenario, shared, employee_id, duration_ms) -> TaskResult:
         doc_type="перевод",
         employee_id=employee_id,
         source_ref="Д-2026-001",
+        html=_html_translation(tr, summary),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -410,7 +856,8 @@ def _result_compare_kp(scenario, shared, employee_id, duration_ms) -> TaskResult
         title=f"Сравнительный анализ КП по закупке {tender.get('number', '—')}",
         doc_type="анализ",
         employee_id=employee_id,
-        source_ref=tender.get("id", "")
+        source_ref=tender.get("id", ""),
+        html=_html_compare_kp(tender, proposals, winner_id, rec.get("rationale"), summary),
     )]
 
     return TaskResult(
@@ -459,6 +906,7 @@ def _result_supplier(scenario, shared, employee_id, duration_ms) -> TaskResult:
         doc_type="карточка",
         employee_id=employee_id,
         source_ref=supplier.get("id", supplier["name"]),
+        html=_html_supplier_card(supplier, summary),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -484,7 +932,8 @@ def _result_appeal(scenario, shared, employee_id, duration_ms) -> TaskResult:
         title=f"Проект ответа на обращение №{appeal.get('number')}",
         doc_type="письмо",
         employee_id=employee_id,
-        source_ref=appeal.get("id", "")
+        source_ref=appeal.get("id", ""),
+        html=_html_appeal_response(appeal, template, summary),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -539,6 +988,11 @@ def _result_route_approval(scenario, shared, employee_id, duration_ms) -> TaskRe
         doc_type="лист согласования",
         employee_id=employee_id,
         source_ref=app.get("id", ""),
+        html=_html_simple(
+            title=f"Лист согласования заявки №{app.get('number', '—')}",
+            summary=summary,
+            bullets=[f"{a.get('role','—')}: {a.get('status','ожидание')}" for a in (app.get("approvals") or [])],
+        ),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -570,6 +1024,7 @@ def _result_send_issues(scenario, shared, employee_id, duration_ms) -> TaskResul
         doc_type="служебная записка",
         employee_id=employee_id,
         source_ref=app.get("id", ""),
+        html=_html_application_check(app, {"issues": issues, "passed": []}, summary),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -611,6 +1066,11 @@ def _result_list_applications(scenario, shared, employee_id, duration_ms) -> Tas
         doc_type="реестр",
         employee_id=employee_id,
         source_ref="applications",
+        html=_html_simple(
+            title=f"Выгрузка заявок · {period}",
+            summary=summary,
+            bullets=[f"№{r.get('number')} · {r.get('title')}" for r in rows[:12]],
+        ),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -651,6 +1111,7 @@ def _result_generate_doc(scenario, shared, employee_id, duration_ms, *,
         doc_type=doc_type,
         employee_id=employee_id,
         source_ref="",
+        html=_html_simple(title=doc_title, summary=summary),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -679,6 +1140,11 @@ def _result_contractor_history(scenario, shared, employee_id, duration_ms) -> Ta
         doc_type="реестр",
         employee_id=employee_id,
         source_ref="suppliers_registry",
+        html=_html_simple(
+            title=f"Реестр истории контрактов · {len(top)} подрядчиков",
+            summary=summary,
+            bullets=[f"{r.get('name')} · рейтинг {r.get('rating')} · контрактов {r.get('contracts_count')}" for r in top[:12]],
+        ),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -703,6 +1169,11 @@ def _result_alt_contractors(scenario, shared, employee_id, duration_ms) -> TaskR
         doc_type="shortlist",
         employee_id=employee_id,
         source_ref="suppliers_registry",
+        html=_html_simple(
+            title=f"Shortlist альтернативных подрядчиков ({len(suppliers)})",
+            summary=summary,
+            bullets=[f"{r.get('name')} · рейтинг {r.get('rating')} · надёжность {r.get('reliability')}" for r in suppliers[:12]],
+        ),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -735,6 +1206,7 @@ def _result_compare_daily(scenario, shared, employee_id, duration_ms) -> TaskRes
         doc_type="сводка",
         employee_id=employee_id,
         source_ref="daily_ops",
+        html=_html_simple(title="Сравнительная сводка 20.04 — 21.04", summary=summary),
     )]
     return TaskResult(
         scenario_id=scenario.id,
@@ -768,6 +1240,11 @@ def _result_route_summary(scenario, shared, employee_id, duration_ms) -> TaskRes
             doc_type="письмо",
             employee_id=employee_id,
             source_ref=r.get("email", ""),
+            html=_html_simple(
+                title=f"Письмо · сводка для {r['role']} ({r['name']})",
+                summary=summary,
+                bullets=[f"Получатель: {r.get('email')}"],
+            ),
         )
         for r in recipients
     ]
@@ -798,6 +1275,7 @@ def _result_daily_summary(scenario, shared, employee_id, duration_ms) -> TaskRes
         doc_type="сводка",
         employee_id=employee_id,
         source_ref="daily_ops"
+        ,html=_html_simple(title=f"Ежедневная сводка {ops.get('date')}", summary=summary),
     )]
     return TaskResult(
         scenario_id=scenario.id,

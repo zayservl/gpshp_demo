@@ -6,9 +6,10 @@ import ChatPanel from './ChatPanel';
 import DocumentsPanel from './DocumentsPanel';
 import ToolsPanel from './ToolsPanel';
 import ReasoningPanel from './ReasoningPanel';
+import IntegrationsPanel from './IntegrationsPanel';
 import AgentDetailsModal from './AgentDetailsModal';
 import DocumentViewerModal from './DocumentViewerModal';
-import { FileText, Wrench, Brain } from 'lucide-react';
+import { FileText, Wrench, Brain, Server } from 'lucide-react';
 
 export default function EmployeeWorkspace({
   employee: initialEmployee,
@@ -26,9 +27,24 @@ export default function EmployeeWorkspace({
   const [reasoning, setReasoning] = useState([]);
   const [documentsCreated, setDocumentsCreated] = useState([]);
   const [selectedAgent, setSelectedAgent] = useState(null);
-  const [viewDocId, setViewDocId] = useState(null);
+  const [viewDoc, setViewDoc] = useState({ id: null, highlight: null });
   const [tab, setTab] = useState('documents');
   const [templates, setTemplates] = useState([]);
+  const [integrations, setIntegrations] = useState([]);
+  const [activeSystem, setActiveSystem] = useState(null);
+
+  const detectSystem = useCallback((node) => {
+    const tool = String(node?.config?.tool || '').toLowerCase();
+    const source = String(node?.config?.source || '').toLowerCase();
+    const name = String(node?.name || '').toLowerCase();
+    const hay = `${tool} ${source} ${name}`;
+    if (hay.includes('sap') || hay.includes('erp')) return 'erp';
+    if (hay.includes('сэд') || hay.includes('эдо') || hay.includes('согласован')) return 'edo';
+    if (hay.includes('договор') || hay.includes('contract')) return 'contracts';
+    if (hay.includes('кп') || hay.includes('тендер') || hay.includes('зкп') || hay.includes('proposal')) return 'smb';
+    if (hay.includes('заявк') || hay.includes('реестр')) return 'sus';
+    return null;
+  }, []);
 
   // Ширина левой колонки (чат + действия) — resizable. Храним в localStorage,
   // чтобы ширина переживала reload и переключение сотрудников.
@@ -96,6 +112,8 @@ export default function EmployeeWorkspace({
     setLogs([]);
     setReasoning([]);
     setDocumentsCreated([]);
+    setIntegrations([]);
+    setActiveSystem(null);
 
     Promise.all([
       fetch(`/api/employees/${initialEmployee.id}`).then(r => r.json()),
@@ -141,9 +159,61 @@ export default function EmployeeWorkspace({
         }
       }
 
-      if (type === 'workflow_update') setWorkflow(data);
+      if (type === 'workflow_update') {
+        setWorkflow(data);
+        // Best-effort: обновим активную систему по текущему running-узлу
+        const running = (data?.nodes || []).find(n => n.status === 'running');
+        const sys = running ? detectSystem(running) : null;
+        setActiveSystem(sys);
+      }
 
       if (type === 'node_status') {
+        // Integrations: делаем “живые запросы” из статусов узлов (demo-mode)
+        try {
+          const nodeId = data.node_id;
+          const status = data.status;
+          setWorkflow(prev => {
+            if (!prev || prev.workflow_id !== data.workflow_id) return prev;
+            const node = prev.nodes.find(n => n.id === nodeId);
+            const sys = detectSystem(node);
+            if (status === 'running') setActiveSystem(sys);
+            if (sys) {
+              const now = new Date().toISOString();
+              if (status === 'running') {
+                setIntegrations(prevReqs => ([
+                  ...prevReqs,
+                  {
+                    id: `int-${data.workflow_id}-${nodeId}-${Date.now()}`,
+                    system: sys,
+                    node_id: nodeId,
+                    status: 'pending',
+                    duration_ms: null,
+                    result: node?.name || node?.config?.tool || 'выполнение шага',
+                    at: now,
+                  }
+                ]));
+              }
+              if (status === 'completed' || status === 'failed') {
+                setIntegrations(prevReqs => {
+                  const next = prevReqs.slice();
+                  for (let i = next.length - 1; i >= 0; i--) {
+                    if (next[i].system === sys && next[i].node_id === nodeId && next[i].status === 'pending') {
+                      next[i] = {
+                        ...next[i],
+                        status: status === 'completed' ? 'completed' : 'failed',
+                        duration_ms: data.duration_ms ?? null,
+                        result: status === 'completed' ? (next[i].result || 'OK') : (data.error || 'error'),
+                      };
+                      break;
+                    }
+                  }
+                  return next;
+                });
+              }
+            }
+            return prev;
+          });
+        } catch {/* ignore */}
         setWorkflow(prev => {
           if (!prev || prev.workflow_id !== data.workflow_id) return prev;
           return {
@@ -362,7 +432,7 @@ export default function EmployeeWorkspace({
           onResume={handleResume}
           onReset={handleReset}
           isExecuting={isExecuting}
-          onOpenDocument={setViewDocId}
+          onOpenDocument={(docId, highlight) => setViewDoc({ id: docId, highlight: highlight || null })}
           planInCenter={Boolean(session?.pending_plan?.graph_nodes?.length)}
         />
       </div>
@@ -408,6 +478,8 @@ export default function EmployeeWorkspace({
         <div className="flex border-b border-white/10">
           <TabButton active={tab === 'documents'} onClick={() => setTab('documents')}
             icon={<FileText className="w-3.5 h-3.5" />} label="Документы" count={documentsCreated.length} />
+          <TabButton active={tab === 'integrations'} onClick={() => setTab('integrations')}
+            icon={<Server className="w-3.5 h-3.5" />} label="Интеграции" count={integrations.length} />
           <TabButton active={tab === 'tools'} onClick={() => setTab('tools')}
             icon={<Wrench className="w-3.5 h-3.5" />} label="Профиль" />
           <TabButton active={tab === 'reasoning'} onClick={() => setTab('reasoning')}
@@ -418,8 +490,11 @@ export default function EmployeeWorkspace({
             <DocumentsPanel
               employeeId={employee.id}
               newlyCreated={documentsCreated}
-              onOpen={setViewDocId}
+              onOpen={(docId) => setViewDoc({ id: docId, highlight: null })}
             />
+          )}
+          {tab === 'integrations' && (
+            <IntegrationsPanel integrations={integrations} activeSystem={activeSystem} />
           )}
           {tab === 'tools' && <ToolsPanel employee={employee} />}
           {tab === 'reasoning' && <ReasoningPanel reasoning={reasoning} logs={logs} />}
@@ -427,7 +502,11 @@ export default function EmployeeWorkspace({
       </div>
 
       <AgentDetailsModal agent={selectedAgent} onClose={() => setSelectedAgent(null)} />
-      <DocumentViewerModal docId={viewDocId} onClose={() => setViewDocId(null)} />
+      <DocumentViewerModal
+        docId={viewDoc.id}
+        highlight={viewDoc.highlight}
+        onClose={() => setViewDoc({ id: null, highlight: null })}
+      />
     </div>
   );
 }

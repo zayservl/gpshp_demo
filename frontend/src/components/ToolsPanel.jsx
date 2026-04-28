@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wrench, Database, Users } from 'lucide-react';
+import { Wrench, Users } from 'lucide-react';
 
 export default function ToolsPanel({ employee }) {
   if (!employee) return null;
@@ -44,22 +44,6 @@ export default function ToolsPanel({ employee }) {
                   <div className="text-[13px] text-white font-medium leading-tight">{t.label}</div>
                   <div className="text-[10px] text-white/40 font-mono">{t.name}</div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-[11px] uppercase tracking-wider text-white/40 mb-2 flex items-center gap-1.5">
-            <Database className="w-3 h-3" /> Системы и базы
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {['СЭД ГШП', 'ERP / 1C', 'База ЛНА', 'Реестр поставщиков'].map(s => (
-              <div
-                key={s}
-                className="text-[12px] text-white/70 px-2 py-1.5 rounded-md bg-white/[0.04] border border-white/10 text-center"
-              >
-                {s}
               </div>
             ))}
           </div>

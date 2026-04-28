@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff, Users, ArrowLeft } from 'lucide-react';
+import { Wifi, WifiOff, Users, ArrowLeft, KanbanSquare } from 'lucide-react';
 
 const GSPLogo = () => (
   <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -19,7 +19,7 @@ const GSPLogo = () => (
   </svg>
 );
 
-export default function Header({ isConnected, activeEmployee, onBack }) {
+export default function Header({ isConnected, activeEmployee, onBack, view = 'employees', onChangeView }) {
   return (
     <header className="h-16 bg-gpn-dark/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6 shrink-0">
       <div className="flex items-center gap-4">
@@ -60,6 +60,33 @@ export default function Header({ isConnected, activeEmployee, onBack }) {
       </div>
 
       <div className="flex items-center gap-6">
+        {onChangeView && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onChangeView('employees')}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors border ${
+                view === 'employees'
+                  ? 'bg-cyan-500/10 border-cyan-400/30 text-cyan-200'
+                  : 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+              title="Список сотрудников"
+            >
+              Сотрудники
+            </button>
+            <button
+              onClick={() => onChangeView('tasks')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors border ${
+                view === 'tasks'
+                  ? 'bg-cyan-500/10 border-cyan-400/30 text-cyan-200'
+                  : 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+              title="Общий дашборд задач"
+            >
+              <KanbanSquare className="w-4 h-4" />
+              Задачи
+            </button>
+          </div>
+        )}
         <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
           isConnected ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
         }`}>
